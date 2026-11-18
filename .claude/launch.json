@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bot-studio-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["preview.mjs", "."],
+      "port": 5178
+    },
+    {
+      "name": "video-copy",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["preview.mjs", ".", "--live-houses", "--port=5179"],
+      "port": 5179
+    }
+  ]
+}

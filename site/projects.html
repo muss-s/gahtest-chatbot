@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projects · Grab A House</title>
+<meta name="description" content="The housing projects Grab A House offers in Pampanga, with their houses.">
+<meta name="theme-color" content="#0c1410">
+<link rel="icon" type="image/png" sizes="32x32" href="/site/img/logo-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/site/img/logo-64.png">
+<link rel="apple-touch-icon" href="/site/img/logo-192.png">
+<meta property="og:image" content="/site/img/logo-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+<main><section class="page-top"><div class="wrap" id="page">
+  <span class="eyebrow"><i></i>Projects</span>
+  <h1 class="page">Communities we offer</h1>
+  <p class="lead">Each project with the houses you can see today.</p>
+  <div id="list"></div>
+</div></section></main>
+
+<script type="module">
+import { el, loadHouses, houseCard, reveal, closing, place } from "/site/site.js";
+document.querySelector("main").append(closing());
+const list = document.getElementById("list");
+loadHouses().then((houses) => {
+  const groups = new Map();
+  for (const h of houses) { const k = h.project || "Other houses"; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(h); }
+  list.replaceChildren(...[...groups].map(([name, hs]) => {
+    const towns = [...new Set(hs.map(place).filter(Boolean))].join(" · ");
+    const live = hs.filter((h) => h.status !== "sold out").length;
+    return el("article", { class: "proj glass rv", id: name },
+      el("span", { class: "eyebrow" }, el("i"), `${live} available`),
+      el("h2", { text: name }),
+      towns ? el("p", { class: "lead", text: towns }) : null,
+      el("div", { class: "grid" }, hs.map(houseCard)));
+  }));
+  reveal(list);
+  if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+}).catch(() => list.replaceChildren(el("p", { class: "empty glass", text: "The projects couldn't load. Please refresh the page." })));
+</script>
+</body>
+</html>

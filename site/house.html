@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>House for sale · Grab A House</title>
+<meta name="description" content="House and lot for sale in Pampanga: photos, specs, price and financing options.">
+<meta name="theme-color" content="#0f2a20">
+<link rel="icon" type="image/png" sizes="32x32" href="/site/img/logo-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/site/img/logo-64.png">
+<link rel="apple-touch-icon" href="/site/img/logo-192.png">
+<meta property="og:image" content="/site/img/hero.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+<main><div class="wrap" id="page">
+  <nav class="crumbs"><a href="/site/">Home</a> / <a href="/site/houses.html">Houses for sale</a></nav>
+  <div class="gallery skel"><div class="ph" style="grid-row:1/3"></div></div>
+</div></main>
+
+<script type="module">
+import { el, icon, loadHouses, priceOf, monthlyOf, peso, place, specs, houseCard, reveal, closing, PHONES } from "/site/site.js";
+document.querySelector("main").append(closing());
+const page = document.getElementById("page");
+const slug = new URLSearchParams(location.search).get("h") || "";
+
+loadHouses().then((houses) => {
+  const h = houses.find((x) => x.slug === slug);
+  if (!h) {
+    page.replaceChildren(el("nav", { class: "crumbs" }, el("a", { href: "/site/", text: "Home" }), " / ", el("a", { href: "/site/houses.html", text: "Houses for sale" })),
+      el("div", { class: "page-head" }, el("h1", { text: "We couldn't find that house" }), el("p", { class: "lead", text: "It may have been renamed or sold." })),
+      el("a", { class: "btn btn-main", href: "/site/houses.html", text: "See all houses" }));
+    return;
+  }
+  const full = `${h.name}${h.project ? `, ${h.project}` : ""}`;
+  document.title = `${full}${place(h) ? `, ${place(h)}` : ""} · Grab A House`;
+  document.querySelector('meta[name="description"]').content = `${full}${place(h) ? `, ${place(h)}` : ""}: ${specs(h).map(([, v]) => v).join(", ")}. House and lot for sale.`;
+  if (h.photos[0]) document.querySelector('meta[property="og:image"]').content = h.photos[0];
+
+  // gallery: big first photo, two on the side; click opens the full photo
+  const shown = h.photos.slice(0, 3);
+  const gallery = el("div", { class: `gallery${shown.length === 1 ? " one" : shown.length === 2 ? " two" : ""}` },
+    shown.length ? shown.map((u, i) => el("button", { type: "button", "aria-label": `Open photo ${i + 1} of ${h.photos.length}`, onclick: () => window.open(u, "_blank", "noopener") },
+      el("img", { src: u, alt: `${full}, photo ${i + 1}`, loading: i ? "lazy" : "eager" }),
+      i === shown.length - 1 && h.photos.length > 3 ? el("span", { class: "more", text: `+${h.photos.length - 3} more` }) : null))
+    : el("div", { class: "ph none" }, el("span", { class: "none" }, icon("camera"), "Photos coming soon. Ask us and we'll send pictures.")));
+
+  const price = priceOf(h);
+  const monthly = monthlyOf(h);
+  const about = `${h.name}${h.project ? ` (${h.project})` : ""}`;
+  const box = el("aside", { class: "box" },
+    el("span", { class: `tag status ${h.status === "sold out" ? "sold" : h.status === "few units left" ? "few" : ""}`, text: h.status === "sold out" ? "Sold out" : h.status === "few units left" ? "Few units left" : "Available" }),
+    el("span", { class: `bigprice${price ? "" : " ask"}`, text: price ? peso(price) : "Price on request" }),
+    monthly ? el("span", { class: "monthly", text: `from ${peso(monthly.amount)}/month${monthly.financing ? ` with ${monthly.financing}` : ""}` }) : null,
+    el("p", { class: "fine", text: h.asOf ? `As of ${h.asOf}. An agent confirms the final price and computation.` : "An agent confirms the final price and computation." }),
+    el("button", { class: "btn btn-main btn-block", "data-chat": price ? `Interested po ako sa ${about}. Pwede po malaman ang details?` : `Magkano po ang ${about}?`, text: price ? "Inquire about this house" : "Ask for the price" }),
+    el("button", { class: "btn btn-green btn-block", "data-chat": "", "data-visit": h.slug, text: "Book a free site visit" }),
+    el("hr"),
+    PHONES.map(([n, net, t]) => el("a", { class: "tel", href: `tel:${t}` }, `Call or text ${n} `, el("small", { text: `(${net})` }))));
+
+  const facts = [["Bedrooms", h.bedrooms], ["Bathrooms", h.bathrooms], ["Floor area", h.floorArea], ["Lot area", h.lotArea], ["Project", h.project], ["Town", h.town]].filter(([, v]) => v);
+  const OPT = [["price", "Total price"], ["reservation", "Reservation fee"], ["monthly", "Monthly payment"], ["term", "Term"]];
+  const opts = h.options.filter((o) => OPT.some(([k]) => o[k]));
+  const mapQ = [h.project, h.town, h.area || "Pampanga"].filter(Boolean).join(", ");
+
+  const main = el("div", {},
+    el("h1", { text: h.name }),
+    el("span", { class: "where" }, icon("pin"), [h.project, place(h)].filter(Boolean).join(" · ") || "Location to be confirmed"),
+    // phones: price and the main button right under the name (the side box comes later in the page)
+    el("div", { class: "mprice" },
+      el("span", { class: `price${price ? "" : " ask"}`, text: price ? peso(price) : "Price on request" }),
+      monthly ? el("span", { class: "monthly", text: `from ${peso(monthly.amount)}/month${monthly.financing ? ` with ${monthly.financing}` : ""}` }) : null,
+      el("button", { class: "btn btn-main btn-block", "data-chat": price ? `Interested po ako sa ${about}. Pwede po malaman ang details?` : `Magkano po ang ${about}?`, text: price ? "Inquire about this house" : "Ask for the price" })),
+    facts.length ? el("div", { class: "keyfacts" }, facts.map(([k, v]) => el("div", { class: "fact" }, el("span", { text: k }), el("b", { text: v })))) : null,
+    opts.length ? el("div", { class: "block" }, el("h2", { text: "Payment options" }),
+      el("div", { class: "opts" }, opts.map((o) => el("div", { class: "opt" }, el("h3", { text: o.financing || "Payment" }),
+        el("dl", {}, OPT.filter(([k]) => o[k]).map(([k, label]) => [el("dt", { text: label }), el("dd", { text: k === "term" ? `${o[k]}${/yr|year/i.test(o[k]) ? "" : " years"}` : peso(o[k]) })]))))),
+      el("p", { class: "note", text: "Sample amounts from the owner. An agent confirms the final computation for your chosen option." })) : null,
+    h.features ? el("div", { class: "block" }, el("h2", { text: "Features" }), el("p", { text: h.features })) : null,
+    h.town ? el("div", { class: "block" }, el("h2", { text: "Location" }),
+      el("iframe", { class: "map", title: `Map of ${mapQ}`, loading: "lazy", referrerpolicy: "no-referrer-when-downgrade", src: `https://maps.google.com/maps?q=${encodeURIComponent(mapQ)}&z=13&output=embed` }),
+      el("p", { class: "note", text: "Area map only. Ask us for the exact location of the house." })) : null);
+
+  const more = houses.filter((x) => x !== h && x.status !== "sold out" && (x.project === h.project || x.town === h.town)).slice(0, 3);
+  page.replaceChildren(...[
+    el("nav", { class: "crumbs" }, el("a", { href: "/site/", text: "Home" }), " / ", el("a", { href: "/site/houses.html", text: "Houses for sale" }), h.town ? [" / ", el("a", { href: `/site/houses.html?town=${encodeURIComponent(h.town)}`, text: h.town })] : null),
+    gallery,
+    el("div", { class: "detail" }, main, box),
+    more.length ? el("section", { style: "padding-top:0" }, el("div", { class: "head" }, el("h2", { text: "Similar homes" })), el("div", { class: "grid" }, more.map(houseCard))) : null,
+  ].filter(Boolean));
+  reveal(page);
+}).catch(() => page.replaceChildren(el("p", { class: "empty", style: "margin:40px 0", text: "This house couldn't load. Please refresh the page, or call us." })));
+</script>
+</body>
+</html>

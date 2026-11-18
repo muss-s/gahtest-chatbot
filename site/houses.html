@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>House and lot for sale in Pampanga · Grab A House</title>
+<meta name="description" content="All Grab A House listings in Pampanga: photos, prices, sizes and monthly payments. Filter by town, project, price, bedrooms and type.">
+<meta name="theme-color" content="#0f2a20">
+<link rel="icon" type="image/png" sizes="32x32" href="/site/img/logo-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/site/img/logo-64.png">
+<link rel="apple-touch-icon" href="/site/img/logo-192.png">
+<meta property="og:image" content="/site/img/hero.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+<main><div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow">Houses for sale</span>
+    <h1 id="title">House and lot for sale in Pampanga</h1>
+    <p class="lead">Prices and availability come straight from the owner. Tap a house for photos, specs and payment options.</p>
+  </div>
+  <div class="listing">
+    <form class="filters" id="filters" role="search" onsubmit="return false">
+      <h2>Filter</h2>
+      <label>Search<input id="fq" type="search" placeholder="Name, project or town" autocomplete="off"></label>
+      <label>Town<select id="ft"><option value="">All towns</option></select></label>
+      <label>Project<select id="fp"><option value="">All projects</option></select></label>
+      <label>House type<select id="fy"><option value="">Any type</option></select></label>
+      <label>Price<select id="fr">
+        <option value="">Any price</option><option value="0-2000000">Under ₱2M</option><option value="2000000-4000000">₱2M to ₱4M</option>
+        <option value="4000000-6000000">₱4M to ₱6M</option><option value="6000000-">Over ₱6M</option><option value="ask">Price on request</option>
+      </select></label>
+      <div><label style="margin-bottom:6px">Bedrooms</label><div class="seg" id="fb" role="group" aria-label="Bedrooms">
+        <button type="button" data-v="" aria-pressed="true">Any</button><button type="button" data-v="1" aria-pressed="false">1+</button><button type="button" data-v="2" aria-pressed="false">2+</button><button type="button" data-v="3" aria-pressed="false">3+</button><button type="button" data-v="4" aria-pressed="false">4+</button>
+      </div></div>
+      <label style="flex-direction:row;align-items:center;gap:10px;font-weight:600"><input type="checkbox" id="fs" style="width:20px;min-height:20px"> Hide sold out</label>
+      <button type="button" class="btn btn-ghost" id="clear">Clear filters</button>
+    </form>
+    <div>
+      <div class="bar">
+        <span class="count" id="count" aria-live="polite"></span>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-ghost showfilters" id="showFilters">Filters</button>
+          <select id="sort" aria-label="Sort"><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="name">Name A to Z</option></select>
+        </div>
+      </div>
+      <div class="grid" id="grid" style="grid-template-columns:repeat(auto-fill,minmax(270px,1fr))"></div>
+    </div>
+  </div>
+</div></main>
+
+<script type="module">
+import { el, loadHouses, houseCard, skeletons, reveal, priceNumber, closing } from "/site/site.js";
+document.querySelector("main").append(closing());
+const $ = (id) => document.getElementById(id);
+$("grid").append(...skeletons(6));
+$("showFilters").onclick = () => $("filters").classList.toggle("open");
+
+const TYPES = [["Single detached", /single detached|detached/i], ["Single attached", /single attached|attached/i], ["Duplex", /duplex|couple/i], ["Townhouse", /town ?house|terrace/i], ["Row house", /row ?house|end unit|inner unit/i], ["Lot only", /\blot\b/i]];
+const typeOf = (h) => (TYPES.find(([, re]) => re.test(`${h.name} ${h.features}`)) || [""])[0];
+const beds = (h) => parseInt(h.bedrooms, 10) || 0;
+let bedsMin = "";
+
+loadHouses().then((houses) => {
+  const fill = (sel, values) => [...new Set(values.filter(Boolean))].sort().forEach((v) => sel.append(el("option", { value: v, text: v })));
+  fill($("ft"), houses.map((h) => h.town));
+  fill($("fp"), houses.map((h) => h.project));
+  fill($("fy"), houses.map(typeOf));
+
+  // filters live in the address, so a filtered list can be shared (and the home page search lands here)
+  const params = new URLSearchParams(location.search);
+  for (const [k, id] of [["q", "fq"], ["town", "ft"], ["project", "fp"], ["type", "fy"], ["price", "fr"], ["sort", "sort"]]) if (params.get(k)) $(id).value = params.get(k);
+  bedsMin = params.get("beds") || "";
+  $("fs").checked = params.get("sold") === "hide";
+  const pressBeds = () => $("fb").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === bedsMin)));
+  pressBeds();
+  $("fb").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; bedsMin = b.dataset.v; pressBeds(); render(); });
+  $("clear").onclick = () => { $("filters").reset(); bedsMin = ""; pressBeds(); render(); };
+
+  function render() {
+    const q = $("fq").value.trim().toLowerCase();
+    const [lo, hi] = ($("fr").value || "").split("-");
+    const list = houses.filter((h) =>
+      (!q || [h.name, h.project, h.town, h.area].join(" ").toLowerCase().includes(q)) &&
+      (!$("ft").value || h.town === $("ft").value) &&
+      (!$("fp").value || h.project === $("fp").value) &&
+      (!$("fy").value || typeOf(h) === $("fy").value) &&
+      (!bedsMin || beds(h) >= +bedsMin) &&
+      (!$("fs").checked || h.status !== "sold out") &&
+      ($("fr").value === "" ? true : $("fr").value === "ask" ? !priceNumber(h) : priceNumber(h) && priceNumber(h) >= +(lo || 0) && (!hi || priceNumber(h) < +hi)));
+    const s = $("sort").value;
+    const p = (h) => priceNumber(h) || (s === "high" ? -1 : 1e13); // "price on request" goes last
+    list.sort((a, b) => (a.status === "sold out") - (b.status === "sold out") || (s === "name" ? a.name.localeCompare(b.name) : s === "high" ? p(b) - p(a) : p(a) - p(b)));
+    $("count").textContent = `${list.length} ${list.length === 1 ? "house" : "houses"} found`;
+    $("title").textContent = $("ft").value ? `House and lot for sale in ${$("ft").value}` : "House and lot for sale in Pampanga";
+    $("grid").replaceChildren(...(list.length ? list.map(houseCard) : [el("p", { class: "empty", text: "No house matches these filters. Try fewer filters, or ask us for houses in your budget." })]));
+    reveal($("grid"));
+    const qs = new URLSearchParams(Object.entries({ q: $("fq").value, town: $("ft").value, project: $("fp").value, type: $("fy").value, price: $("fr").value, beds: bedsMin, sold: $("fs").checked ? "hide" : "", sort: s === "low" ? "" : s }).filter(([, v]) => v));
+    history.replaceState(null, "", qs.toString() ? `?${qs}` : location.pathname);
+  }
+  $("filters").addEventListener("input", render);
+  $("sort").addEventListener("input", render);
+  render();
+}).catch(() => $("grid").replaceChildren(el("p", { class: "empty", text: "The houses couldn't load. Please refresh the page, or call us." })));
+</script>
+</body>
+</html>

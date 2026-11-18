@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>About & contact · Grab A House</title>
+<meta name="description" content="Contact Grab A House: 0932 424 4949 (Smart), 0976 229 0328 (Globe). House and lot in Pampanga, Tarlac, Bataan and Subic.">
+<meta name="theme-color" content="#0c1410">
+<link rel="icon" type="image/png" sizes="32x32" href="/site/img/logo-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/site/img/logo-64.png">
+<link rel="apple-touch-icon" href="/site/img/logo-192.png">
+<meta property="og:image" content="/site/img/logo-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+<main><section class="page-top"><div class="wrap">
+  <span class="eyebrow"><i></i>About us</span>
+  <h1 class="page">Helping you find a home in Central Luzon</h1>
+  <div class="prose">
+    <p class="lead">Grab A House offers house and lot units from several developers in Pampanga, Tarlac, Bataan and Subic. Browse the houses on this site, ask our assistant, or call or text us. We help you choose, explain the payment options, and set up a free site visit.</p>
+    <h2>Where we offer homes</h2>
+    <p>Pampanga, Tarlac, Bataan and Subic.</p>
+    <h2>Houses listed on this site</h2>
+    <p id="towns">Angeles, Porac, Mabalacat, San Fernando and Mexico, Pampanga.</p>
+    <p>For houses in Tarlac, Bataan or Subic, ask our assistant or call or text us.</p>
+    <h2>Projects</h2>
+    <p id="projects">See the <a href="/site/projects.html" style="color:var(--brand);font-weight:700">projects page</a>.</p>
+  </div>
+</div></section></main>
+
+<script type="module">
+import { loadHouses, closing } from "/site/site.js";
+document.querySelector("main").append(closing());
+loadHouses().then((houses) => {
+  const list = (vals) => { const v = [...new Set(vals.filter(Boolean))]; return v.length > 1 ? `${v.slice(0, -1).join(", ")} and ${v.at(-1)}` : v[0] || ""; };
+  const towns = list(houses.map((h) => h.town));
+  if (towns) document.getElementById("towns").textContent = `${towns}.`;
+  const projects = list(houses.map((h) => h.project));
+  if (projects) document.getElementById("projects").textContent = `${projects}.`;
+}).catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Secrets and local Vercel link: never commit
+.env
+.env.*
+!.env.example
+.vercel
+
+# Installed packages and local caches
+node_modules
+graphify-out/cache

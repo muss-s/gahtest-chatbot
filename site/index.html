@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grab A House · House and lot for sale in Pampanga</title>
+<meta name="description" content="House and lot for sale in Porac, Mabalacat, Angeles, San Fernando and Mexico, Pampanga. Photos, prices, monthly payments with Pag-IBIG, bank or in-house financing.">
+<meta property="og:title" content="Grab A House · House and lot for sale in Pampanga">
+<meta property="og:description" content="Real houses in Pampanga with photos, prices and financing options.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0f2a20">
+<link rel="icon" type="image/png" sizes="32x32" href="/site/img/logo-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/site/img/logo-64.png">
+<link rel="apple-touch-icon" href="/site/img/logo-192.png">
+<meta property="og:image" content="/site/img/hero.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"RealEstateAgent","name":"Grab A House","areaServed":"Pampanga, Philippines","telephone":["+639324244949","+639762290328"],"sameAs":["https://www.facebook.com/grabahouseph"]}</script>
+</head>
+<body>
+<main>
+<section class="hero">
+  <div class="hero-img"><img src="/site/img/hero.jpg" alt="" fetchpriority="high"></div>
+  <div class="wrap">
+    <span class="eyebrow">House and lot for sale in Pampanga</span>
+    <h1>Find your home in Pampanga</h1>
+    <p class="lead">Real houses with photos, prices and monthly payments. Pag-IBIG, bank and in-house financing.</p>
+    <form class="search" id="search" action="/site/houses.html" role="search">
+      <label>Location<select name="town" id="sTown"><option value="">All towns</option></select></label>
+      <label>House type<select name="type" id="sType"><option value="">Any type</option></select></label>
+      <label>Price<select name="price">
+        <option value="">Any price</option><option value="0-2000000">Under ₱2M</option><option value="2000000-4000000">₱2M to ₱4M</option>
+        <option value="4000000-6000000">₱4M to ₱6M</option><option value="6000000-">Over ₱6M</option>
+      </select></label>
+      <button class="btn btn-main" type="submit">Search homes</button>
+    </form>
+    <div class="trust" id="trust"></div>
+  </div>
+</section>
+
+<section><div class="wrap">
+  <div class="head">
+    <div><span class="eyebrow">Featured</span><h2>Homes for sale</h2></div>
+    <a class="link" href="/site/houses.html" id="allLink">See all houses →</a>
+  </div>
+  <div class="grid" id="grid"></div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="head"><div><span class="eyebrow">Browse by location</span><h2>Where do you want to live?</h2></div></div>
+  <div class="towns" id="towns"></div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="head"><div><span class="eyebrow">House and lot living</span><h2>Homes made for family life</h2></div></div>
+  <div class="mosaic">
+    <figure class="rv" style="--i:0"><img src="/site/img/home-ext2.jpg" alt="Sample photo: bungalow houses on a quiet subdivision street" loading="lazy"><figcaption>Quiet subdivisions</figcaption></figure>
+    <figure class="rv" style="--i:1"><img src="/site/img/home-int1.jpg" alt="Sample photo: bright living room" loading="lazy"><figcaption>Bright living rooms</figcaption></figure>
+    <figure class="rv" style="--i:2"><img src="/site/img/home-int2.jpg" alt="Sample photo: kitchen and dining area" loading="lazy"><figcaption>Kitchen and dining</figcaption></figure>
+    <figure class="rv" style="--i:3"><img src="/site/img/home-int3.jpg" alt="Sample photo: bedroom" loading="lazy"><figcaption>Restful bedrooms</figcaption></figure>
+    <figure class="rv" style="--i:4"><img src="/site/img/home-ext1.jpg" alt="Sample photo: two-storey house with carport" loading="lazy"><figcaption>Room to grow</figcaption></figure>
+  </div>
+  <p class="mosaic-note">Sample photos for illustration. Each house page shows that house's own photos.</p>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <span class="eyebrow" style="color:var(--mint)">How buying works</span>
+  <h2>From first look to your keys</h2>
+  <p class="lead" style="margin-top:10px">We guide you at every step. An agent confirms the final price and computation for your chosen house.</p>
+  <div class="steps">
+    <div class="step rv" style="--i:0"><h3>Choose a house</h3><p>Browse photos, prices and sizes, or ask us for houses in your budget.</p></div>
+    <div class="step rv" style="--i:1"><h3>Free site visit</h3><p>See the house and the community in person. The owner confirms your date.</p></div>
+    <div class="step rv" style="--i:2"><h3>Reserve</h3><p>Pay the reservation fee to hold your unit. We tell you the exact amount and steps.</p></div>
+    <div class="step rv" style="--i:3"><h3>Pay your way</h3><p>Pag-IBIG housing loan, bank financing or in-house payment, depending on the house.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="head">
+    <div><span class="eyebrow">Projects</span><h2>Communities we offer</h2></div>
+    <a class="link" href="/site/projects.html">All projects →</a>
+  </div>
+  <div class="projects" id="projects"></div>
+</div></section>
+</main>
+
+<script type="module">
+import { el, loadHouses, houseCard, skeletons, reveal, closing, priceNumber } from "/site/site.js";
+document.querySelector("main").append(closing());
+const $ = (id) => document.getElementById(id);
+$("grid").append(...skeletons(6));
+reveal();
+
+const TYPES = [["Single detached", /single detached|detached/i], ["Single attached", /single attached|attached/i], ["Duplex", /duplex|couple/i], ["Townhouse", /town ?house|terrace/i], ["Row house", /row ?house|end unit|inner unit/i], ["Lot only", /\blot\b/i]];
+const typeOf = (h) => (TYPES.find(([, re]) => re.test(`${h.name} ${h.features}`)) || [""])[0];
+
+loadHouses().then((houses) => {
+  const live = houses.filter((h) => h.status !== "sold out");
+  const towns = [...new Set(houses.map((h) => h.town).filter(Boolean))];
+  const projects = [...new Set(houses.map((h) => h.project).filter(Boolean))];
+  towns.sort().forEach((t) => $("sTown").append(el("option", { value: t, text: t })));
+  [...new Set(houses.map(typeOf).filter(Boolean))].sort().forEach((t) => $("sType").append(el("option", { value: t, text: t })));
+  // empty choices out of the link, so the houses page doesn't get "?town=&type="
+  $("search").addEventListener("submit", (e) => { e.preventDefault(); const qs = new URLSearchParams([...new FormData(e.target)].filter(([, v]) => v)); location.href = `/site/houses.html${qs.toString() ? `?${qs}` : ""}`; });
+
+  const cheapest = live.map(priceNumber).filter(Boolean).sort((a, b) => a - b)[0];
+  $("trust").append(
+    el("span", {}, el("b", { text: String(live.length) }), "homes for sale"),
+    el("span", {}, el("b", { text: String(projects.length) }), "projects"),
+    el("span", {}, el("b", { text: String(towns.length) }), "towns"),
+    cheapest ? el("span", {}, el("b", { text: `₱${(cheapest / 1e6).toFixed(cheapest < 1e7 ? 2 : 1).replace(/\.?0+$/, "")}M` }), "lowest price") : null);
+  $("allLink").textContent = `See all ${houses.length} houses →`;
+
+  // featured: available houses with photos and a price first
+  const score = (h) => (h.photos.length ? 2 : 0) + (priceNumber(h) ? 1 : 0);
+  $("grid").replaceChildren(...[...live].sort((a, b) => score(b) - score(a)).slice(0, 6).map(houseCard));
+
+  $("towns").replaceChildren(...towns.filter((t) => live.some((h) => h.town === t)).map((t, i) => {
+    const hs = live.filter((h) => h.town === t);
+    // a real photo from that town if there is one, otherwise a sample street photo (towns only, never a house card)
+    const photo = hs.find((h) => h.photos.length)?.photos[0] || ["/site/img/home-ext2.jpg", "/site/img/home-ext1.jpg"][i % 2];
+    return el("a", { class: "town rv", href: `/site/houses.html?town=${encodeURIComponent(t)}`, style: `--i:${i % 4}` },
+      photo ? el("img", { src: photo, alt: "", loading: "lazy" }) : null,
+      el("span", {}, el("b", { text: t }), el("small", { text: `${hs.length} ${hs.length === 1 ? "home" : "homes"}` })));
+  }));
+
+  $("projects").replaceChildren(...projects.map((p, i) => {
+    const hs = houses.filter((h) => h.project === p);
+    const where = [...new Set(hs.map((h) => h.town).filter(Boolean))].join(", ");
+    return el("a", { class: "proj-tile rv", href: `/site/projects.html#${encodeURIComponent(p)}`, style: `--i:${i % 4}` },
+      el("b", { text: p }), where ? el("small", { text: where }) : null, el("em", { text: `${hs.length} ${hs.length === 1 ? "house" : "houses"} →` }));
+  }));
+  reveal();
+}).catch(() => $("grid").replaceChildren(el("p", { class: "empty", text: "The houses couldn't load. Please refresh the page, or call us." })));
+</script>
+</body>
+</html>

@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bot Studio</title>
+<style>
+  :root {
+    --bg: #f3f4f6; --panel: #fff; --text: #111827; --muted: #6b7280; --line: #e5e7eb; --soft: #f9fafb;
+    --accent: #0866ff; --accent-soft: #e8f0ff; --accent-text: #fff; --bubble: #eef0f3;
+    --ok: #15803d; --ok-soft: #dcfce7; --warn: #a16207; --warn-soft: #fef9c3; --err: #dc2626;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #181b21; --text: #e5e7eb; --muted: #9ca3af; --line: #2a2f37; --soft: #1f232a;
+      --accent-soft: #15233f; --bubble: #262b33; --ok: #4ade80; --ok-soft: #10301c; --warn: #facc15; --warn-soft: #322b0a;
+      --err: #f87171; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1, h2, h3 { line-height: 1.25; margin: 0; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; border-radius: 10px; padding: 10px 16px; background: var(--bubble); }
+  button:hover { filter: brightness(.97); }
+  button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.ghost { background: none; color: var(--muted); }
+  button.danger { background: none; color: var(--err); }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  input[type=text], input[type=url], input[type=password], input[type=date], textarea {
+    width: 100%; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px;
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--panel); }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+  [hidden] { display: none !important; }
+
+  /* sign in */
+  .login { max-width: 400px; margin: 10vh auto; padding: 0 16px; }
+  .login .card { padding: 28px; }
+  .login h1 { font-size: 22px; margin-bottom: 6px; }
+  .pw-row { position: relative; }
+  .pw-row input { padding-right: 70px; }
+  .pw-row button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 6px 10px; font-size: 14px; background: none; color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; margin: 14px 0 18px; font-size: 15px; }
+  .check input { width: 18px; height: 18px; }
+
+  /* layout */
+  .app { display: grid; grid-template-columns: 230px minmax(0, 1fr) 400px; min-height: 100vh; }
+  .nav { background: var(--panel); border-right: 1px solid var(--line); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; gap: 10px; align-items: center; padding: 0 8px 18px; font-weight: 700; font-size: 18px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; font-size: 18px; }
+  .nav a { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; color: var(--text); text-decoration: none; }
+  .nav a:hover { background: var(--soft); }
+  .nav a[aria-current=page] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav .spacer { flex: 1; }
+  .content { padding: 28px 32px 120px; max-width: 860px; width: 100%; }
+  .page-head { margin-bottom: 20px; }
+  .page-head h1 { font-size: 26px; margin-bottom: 4px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 16px; }
+  .card h2 { font-size: 17px; margin-bottom: 4px; }
+  .field { margin-top: 18px; }
+  .field label { display: block; font-weight: 600; margin-bottom: 4px; }
+  .field .help { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+
+  /* setup checklist */
+  .setup { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding: 14px 18px; margin-bottom: 20px; border-radius: 14px; background: var(--warn-soft); }
+  .setup.done { background: var(--ok-soft); }
+  .setup strong { width: 100%; }
+  .setup span { font-size: 15px; }
+
+  /* knowledge */
+  .meter { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .meter .bar { flex: 1; height: 8px; background: var(--bubble); border-radius: 99px; overflow: hidden; }
+  .meter .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+  .meter.full .bar i { background: var(--err); }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+  .tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 16px; border: 1px dashed var(--line); background: var(--soft); border-radius: 14px; cursor: pointer; }
+  .tile:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .tile .ico { font-size: 24px; }
+  .tile b { font-size: 15px; }
+  .tile small { color: var(--muted); font-size: 13px; }
+  .url-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .search { margin-bottom: 12px; }
+  .notes { display: flex; flex-direction: column; gap: 10px; }
+  .note { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .note summary { list-style: none; cursor: pointer; padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+  .note summary::-webkit-details-marker { display: none; }
+  .note summary .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note summary .s { font-size: 13px; color: var(--muted); grid-row: span 2; align-self: center; white-space: nowrap; }
+  .note summary .p { font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note[open] summary { border-bottom: 1px solid var(--line); }
+  .note .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .note .body textarea { min-height: 220px; }
+  .note .row { display: flex; justify-content: space-between; align-items: center; }
+  .empty-notes { text-align: center; padding: 30px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
+  .drop { position: fixed; inset: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); display: grid; place-items: center; z-index: 50; pointer-events: none; }
+  .drop div { background: var(--panel); padding: 24px 32px; border-radius: 16px; font-weight: 600; box-shadow: var(--shadow); }
+  .msg-err { color: var(--err); font-size: 14px; margin: 8px 0 0; }
+
+  /* houses */
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid2 .wide { grid-column: 1 / -1; }
+  .house .body label { display: block; font-weight: 600; font-size: 14px; }
+  .house .body label input, .house .body label textarea { margin-top: 4px; font-weight: 400; }
+  .house .body textarea { min-height: 70px; }
+  .house .group { font-weight: 700; margin-top: 6px; }
+  .badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; background: var(--ok-soft); color: var(--ok); }
+  .badge.few { background: var(--warn-soft); color: var(--warn); }
+  .badge.sold { background: var(--bubble); color: var(--muted); }
+  .price-note { display: none; font-size: 14px; color: var(--warn); margin: 0; }
+  [data-pricing=agent] .price-note { display: block; }
+  .ticks { display: grid; gap: 10px; margin-top: 12px; }
+  .ticks label { display: flex; gap: 10px; align-items: center; font-weight: 400; }
+  .ticks input { width: 18px; height: 18px; }
+
+  /* choice chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .chip { padding: 8px 14px; border-radius: 99px; background: var(--soft); border: 1px solid var(--line); font-size: 15px; }
+  .chip[aria-pressed=true] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  details.dev { margin-top: 16px; }
+  details.dev summary { cursor: pointer; color: var(--muted); }
+  details.dev code { display: block; margin-top: 8px; padding: 10px 12px; background: var(--soft); border-radius: 8px; word-break: break-all; font-size: 14px; }
+
+  /* try-it chat */
+  .chat { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; font-weight: 700; flex: none; }
+  .chat-head .who { flex: 1; min-width: 0; }
+  .chat-head .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .bubble { max-width: 82%; padding: 9px 13px; border-radius: 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bubble.user { align-self: flex-end; background: var(--accent); color: var(--accent-text); border-bottom-right-radius: 6px; }
+  .bubble.bot { align-self: flex-start; background: var(--bubble); border-bottom-left-radius: 6px; }
+  .bubble.problem { align-self: stretch; max-width: none; background: var(--warn-soft); border-radius: 12px; font-size: 14px; }
+  .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+  .starter { margin: auto 0 0; text-align: center; }
+  .starter p { margin: 0 0 10px; }
+  .starter .chips { justify-content: center; }
+  .chat form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+  .fab, .chat .close { display: none; }
+
+  /* save bar */
+  .savebar { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 18px; background: var(--text); color: var(--panel); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); z-index: 40; max-width: calc(100vw - 32px); }
+  .savebar .ghost { color: inherit; opacity: .8; }
+  .savebar button { white-space: nowrap; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ok); color: #fff; padding: 12px 18px; border-radius: 12px; z-index: 41; font-weight: 600; }
+
+  /* smaller screens */
+  @media (max-width: 1180px) {
+    .app { grid-template-columns: 230px minmax(0, 1fr); }
+    .chat { position: fixed; right: 0; top: 0; width: min(420px, 100vw); z-index: 60; box-shadow: -10px 0 40px rgba(0,0,0,.2); }
+    .chat:not(.open) { display: none; }
+    .chat .close { display: block; }
+    .fab { display: flex; gap: 8px; align-items: center; position: fixed; right: 20px; bottom: 20px; z-index: 30; padding: 14px 20px; border-radius: 99px; background: var(--accent); color: var(--accent-text); font-weight: 600; box-shadow: 0 8px 24px rgba(8,102,255,.35); }
+    .savebar { bottom: 86px; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .nav { position: sticky; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--line); z-index: 20; gap: 2px; }
+    .brand { padding: 0 6px 0 0; width: 100%; padding-bottom: 6px; }
+    .nav a { padding: 8px 10px; font-size: 14px; }
+    .nav .spacer, .nav .signout { display: none; }
+    .content { padding: 20px 16px 140px; }
+    .tiles, .grid2 { grid-template-columns: 1fr; }
+    .tile { flex-direction: row; align-items: center; gap: 12px; }
+    .page-head h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sign in -->
+<div id="login" class="login">
+  <div class="card">
+    <h1>Bot Studio</h1>
+    <p class="muted">Sign in to change what your Facebook Page bot says.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="pw">Password</label>
+        <div class="pw-row">
+          <input id="pw" type="password" autocomplete="current-password" required>
+          <button type="button" id="pwToggle" aria-label="Show password">Show</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="remember"> Keep me signed in on this device</label>
+      <p id="loginErr" class="msg-err" role="alert" hidden></p>
+      <button class="primary" style="width:100%">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" class="app" hidden>
+  <nav class="nav" aria-label="Sections">
+    <div class="brand"><span class="logo" aria-hidden="true">💬</span>Bot Studio</div>
+    <a href="#knows" data-nav="knows"><span aria-hidden="true">📚</span> What your bot knows</a>
+    <a href="#houses" data-nav="houses"><span aria-hidden="true">🏠</span> Houses for sale</a>
+    <a href="#talks" data-nav="talks"><span aria-hidden="true">🗣️</span> How your bot talks</a>
+    <a href="#more" data-nav="more"><span aria-hidden="true">⚙️</span> More settings</a>
+    <div class="spacer"></div>
+    <button class="ghost signout" id="signOut" type="button">Sign out</button>
+  </nav>
+
+  <main class="content">
+    <div id="setup" class="setup" role="status" hidden></div>
+
+    <!-- What your bot knows -->
+    <section data-view="knows">
+      <div class="page-head">
+        <h1>What your bot knows</h1>
+        <p class="muted">Your bot answers customers using only the information here. Add your prices, projects, requirements and common questions.</p>
+      </div>
+
+      <div class="card">
+        <h2>Main details</h2>
+        <div class="field">
+          <label for="business">About your business</label>
+          <p class="help">A few sentences: what you sell, where, and how people can pay.</p>
+          <textarea id="business" data-field="business"></textarea>
+        </div>
+        <div class="field">
+          <label for="knowledge">Important details to always mention</label>
+          <p class="help">Phone numbers, office hours, address.</p>
+          <textarea id="knowledge" data-field="knowledge"></textarea>
+        </div>
+      </div>
+
+      <div class="card" id="notesCard">
+        <h2>More information</h2>
+        <p class="muted small">Requirements, payment options, frequently asked questions. Add as many as you need. Put each house under <a href="#houses">Houses for sale</a>.</p>
+        <div class="meter"><div class="bar"><i></i></div><span></span></div>
+
+        <div class="tiles">
+          <button type="button" class="tile" id="addText"><span class="ico" aria-hidden="true">✍️</span><b>Type or paste</b><small>Write it yourself or copy it in</small></button>
+          <button type="button" class="tile" id="addUrl"><span class="ico" aria-hidden="true">🌐</span><b>Copy from a website</b><small>Paste a web page link</small></button>
+          <button type="button" class="tile" id="addFile"><span class="ico" aria-hidden="true">📄</span><b>Upload a text file</b><small>.txt files, or drag one here</small></button>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.md,.csv,text/plain,text/csv,text/markdown" multiple hidden>
+
+        <div class="url-row" id="urlRow" hidden>
+          <input type="url" id="urlInput" placeholder="Paste the web page link, e.g. https://yourwebsite.com/projects" aria-label="Web page link">
+          <button type="button" class="primary" id="urlGo">Add</button>
+          <button type="button" class="ghost" id="urlCancel">Cancel</button>
+        </div>
+        <p id="notesErr" class="msg-err" role="alert" hidden></p>
+
+        <input type="text" class="search" id="search" placeholder="🔍 Search your information" aria-label="Search your information" hidden>
+        <div class="notes" id="notes"></div>
+      </div>
+    </section>
+
+    <!-- Houses for sale -->
+    <section data-view="houses" hidden>
+      <div class="page-head">
+        <h1>Houses for sale</h1>
+        <p class="muted">Add each house or model you're selling. Your bot can then tell customers what's available, where, and how much.</p>
+      </div>
+
+      <div class="card">
+        <h2>When customers ask "Magkano?"</h2>
+        <div class="field" style="margin-top:10px">
+          <div class="chips" data-chips="pricing">
+            <button type="button" class="chip" data-value="share">💬 Bot shares the prices I enter</button>
+            <button type="button" class="chip" data-value="agent">🙋 An agent gives the prices</button>
+          </div>
+          <input type="hidden" id="pricing" data-field="pricing">
+          <p class="help" style="margin:0">If you choose "An agent gives the prices", the bot describes the house but never mentions any amount.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h2>Your houses</h2><span class="small muted" id="houseCount"></span></div>
+          <button type="button" class="primary" id="addHouse">+ Add a house</button>
+        </div>
+        <div class="meter"><div class="bar"><i></i></div><span></span></div>
+        <input type="text" class="search" id="houseSearch" placeholder="🔍 Search by name, area or town" aria-label="Search houses" hidden style="margin-top:12px">
+        <div class="notes" id="houses" style="margin-top:12px"></div>
+        <datalist id="areaList"></datalist>
+      </div>
+    </section>
+
+    <!-- How your bot talks -->
+    <section data-view="talks" hidden>
+      <div class="page-head">
+        <h1>How your bot talks</h1>
+        <p class="muted">Choose your bot's name, personality and language.</p>
+      </div>
+      <div class="card">
+        <div class="field" style="margin-top:0">
+          <label for="botName">Bot's name</label>
+          <p class="help">Customers may see this when the bot introduces itself.</p>
+          <input type="text" id="botName" data-field="botName">
+        </div>
+        <div class="field">
+          <label for="tone">How should your bot sound?</label>
+          <div class="chips" data-chips="tone">
+            <button type="button" class="chip" data-value="friendly">😊 Friendly</button>
+            <button type="button" class="chip" data-value="professional">💼 Professional</button>
+            <button type="button" class="chip" data-value="casual and relaxed">😎 Casual</button>
+            <button type="button" class="chip" data-value="warm and enthusiastic">🎉 Cheerful</button>
+            <button type="button" class="chip" data-value="polite and formal">🎩 Formal</button>
+          </div>
+          <input type="text" id="tone" data-field="tone" placeholder="Or describe it in your own words" aria-label="Describe how your bot should sound">
+        </div>
+        <div class="field">
+          <label for="language">Which language should it reply in?</label>
+          <div class="chips" data-chips="language">
+            <button type="button" class="chip" data-value="Reply in the language the customer uses (English, Tagalog or Taglish).">Same as the customer</button>
+            <button type="button" class="chip" data-value="Always reply in English.">English</button>
+            <button type="button" class="chip" data-value="Always reply in Tagalog.">Tagalog</button>
+            <button type="button" class="chip" data-value="Always reply in Taglish (a natural mix of Tagalog and English).">Taglish</button>
+          </div>
+          <input type="text" id="language" data-field="language" placeholder="Or type your own instruction" aria-label="Language instruction">
+        </div>
+      </div>
+    </section>
+
+    <!-- More settings -->
+    <section data-view="more" hidden>
+      <div class="page-head">
+        <h1>More settings</h1>
+        <p class="muted">Extra instructions for your bot.</p>
+      </div>
+      <div class="card">
+        <h2>Getting buyer details</h2>
+        <p class="muted small" style="margin:0">When someone is interested, your bot asks for these, one or two at a time.</p>
+        <div class="ticks" id="leadQuestions"></div>
+      </div>
+      <div class="card">
+        <div class="field" style="margin-top:0">
+          <label for="rules">Things your bot should always or never do</label>
+          <p class="help">One per line. For example: "Always ask for the customer's budget" or "Never promise a discount".</p>
+          <textarea id="rules" data-field="rules" style="min-height:150px"></textarea>
+        </div>
+        <div class="field">
+          <label for="fallback">Message when something goes wrong</label>
+          <p class="help">Sent to the customer if the bot can't reply for some reason.</p>
+          <input type="text" id="fallback" data-field="fallback">
+        </div>
+        <details class="dev">
+          <summary>For your developer</summary>
+          <p class="small muted">Facebook connection link:</p>
+          <code id="webhookUrl"></code>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <!-- Try your bot -->
+  <aside class="chat" id="chat" aria-label="Try your bot">
+    <div class="chat-head">
+      <div class="avatar" id="avatar">B</div>
+      <div class="who"><b id="chatName">Your bot</b><span class="small muted">Try it here. Customers won't see this.</span></div>
+      <button type="button" class="ghost" id="reset" title="Start a new conversation">Clear</button>
+      <button type="button" class="ghost close" id="closeChat" aria-label="Close">✕</button>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <form id="chatForm">
+      <input type="text" id="chatInput" placeholder="Ask your bot something…" autocomplete="off" aria-label="Your message">
+      <button class="primary" id="send">Send</button>
+    </form>
+  </aside>
+  <button type="button" class="fab" id="openChat"><span aria-hidden="true">💬</span> Try your bot</button>
+
+  <div class="savebar" id="savebar" hidden>
+    <span>You have unsaved changes</span>
+    <button type="button" class="ghost" id="discard">Undo changes</button>
+    <button type="button" class="primary" id="save">Save</button>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+
+<div class="drop" id="drop" hidden><div>📄 Drop your file to add it</div></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const MAX_CHARS = 30000;
+const STARTERS = ["Magkano po?", "Available pa po ba?", "Ano pong pinakamura?", "Pwede po ba Pag-IBIG?", "Can I visit the property?"];
+// same keys as LEAD_QUESTIONS in lib/bot.js
+const LEAD_LABELS = {
+  location: "📍 Preferred location",
+  budget: "💰 Budget or monthly payment they can afford",
+  payment: "🏦 Pag-IBIG or bank financing",
+  employment: "💼 Work (employed, own business, or OFW)",
+  contact: "📞 Name and mobile number",
+  visit: "🚗 Preferred date for a site visit",
+};
+const STATUSES = [["available", "Available", ""], ["few units left", "Few units left", "few"], ["sold out", "Sold out", "sold"]];
+
+let password = "";
+let state = null;      // settings being edited
+let savedJson = "";    // last saved copy, to know if something changed
+let history = [];      // try-it conversation
+
+/* ---------- helpers ---------- */
+const store = {
+  get() { try { return sessionStorage.getItem("pw") || localStorage.getItem("pw") || ""; } catch { return ""; } },
+  set(pw, remember) { try { (remember ? localStorage : sessionStorage).setItem("pw", pw); } catch {} },
+  clear() { try { sessionStorage.removeItem("pw"); localStorage.removeItem("pw"); } catch {} },
+};
+
+async function api(path, options = {}) {
+  let res;
+  try {
+    res = await fetch(path, { ...options, headers: { "Content-Type": "application/json", Authorization: "Bearer " + password } });
+  } catch {
+    throw new Error("Can't connect right now. Please check your internet and try again.");
+  }
+  if (res.status === 401) throw Object.assign(new Error("Wrong password."), { auth: true });
+  return res;
+}
+
+// Turn technical errors into plain words.
+function plain(message) {
+  if (/api key|LLM 40[013]/i.test(message)) return "Your bot isn't fully set up yet, so it can't reply. Please ask your developer to finish the setup.";
+  if (/LLM 429/.test(message)) return "Your bot is getting a lot of messages right now. Please wait a minute and try again.";
+  if (/LLM 5\d\d/.test(message)) return "Your bot is having a temporary problem. Please try again in a few minutes.";
+  if (/too big/i.test(message)) return "There's too much information saved. Please remove or shorten some items, then save again.";
+  return message;
+}
+
+// close to the server's count (lib/bot.js houseText): each house's text plus its labels
+const countChars = () =>
+  state.sources.reduce((n, s) => n + s.content.length, 0) +
+  state.houses.reduce((n, h) => n + Object.values(h).join("").length + 60, 0);
+const preview = (text) => text.replace(/\s+/g, " ").trim().slice(0, 120) || "Empty. Click to add information.";
+const sizeLabel = (n) => (n < 1000 ? "Short" : n < 10000 ? "Medium" : "Long");
+
+function toast(text) {
+  $("toast").textContent = text;
+  $("toast").hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => ($("toast").hidden = true), 2500);
+}
+
+/* ---------- sign in ---------- */
+$("pwToggle").addEventListener("click", () => {
+  const show = $("pw").type === "password";
+  $("pw").type = show ? "text" : "password";
+  $("pwToggle").textContent = show ? "Hide" : "Show";
+  $("pwToggle").setAttribute("aria-label", show ? "Hide password" : "Show password");
+});
+
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("loginErr").hidden = true;
+  try {
+    await signIn($("pw").value.trim());
+    store.set(password, $("remember").checked);
+  } catch (err) {
+    $("loginErr").textContent = err.auth ? "That password isn't right. Check for capital letters and try again." : err.message;
+    $("loginErr").hidden = false;
+  }
+});
+
+async function signIn(pw) {
+  password = pw;
+  const res = await api("/api/settings");
+  if (!res.ok) throw new Error("Something went wrong. Please try again.");
+  load(await res.json());
+  $("login").hidden = true;
+  $("app").hidden = false;
+  route();
+  checkSetup();
+}
+
+$("signOut").addEventListener("click", () => { store.clear(); location.hash = ""; location.reload(); });
+
+/* ---------- settings form ---------- */
+function load(settings) {
+  state = {
+    ...settings,
+    sources: (settings.sources || []).map((s) => ({ ...s })),
+    houses: (settings.houses || []).map((h) => ({ ...h })),
+    leadQuestions: [...(settings.leadQuestions || [])],
+  };
+  savedJson = JSON.stringify(state);
+  document.querySelectorAll("[data-field]").forEach((el) => (el.value = state[el.dataset.field] ?? ""));
+  syncChips();
+  renderNotes();
+  renderHouses();
+  renderLeads();
+  refreshBotName();
+  updateSaveBar();
+}
+
+document.querySelectorAll("[data-field]").forEach((el) =>
+  el.addEventListener("input", () => {
+    state[el.dataset.field] = el.value;
+    syncChips();
+    refreshBotName();
+    updateSaveBar();
+  }),
+);
+
+document.querySelectorAll("[data-chips]").forEach((group) =>
+  group.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const input = $(group.dataset.chips);
+    input.value = chip.dataset.value;
+    input.dispatchEvent(new Event("input"));
+  }),
+);
+
+function syncChips() {
+  document.querySelectorAll("[data-chips]").forEach((group) => {
+    const value = state[group.dataset.chips];
+    group.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.value === value)));
+  });
+  $("app").dataset.pricing = state.pricing; // shows "the bot won't share these" next to prices
+}
+
+function refreshBotName() {
+  const name = (state.botName || "").trim() || "Your bot";
+  $("chatName").textContent = name;
+  $("avatar").textContent = name[0].toUpperCase();
+}
+
+/* ---------- more information (notes) ---------- */
+function renderNotes() {
+  const query = $("search").value.trim().toLowerCase();
+  const list = $("notes");
+  $("search").hidden = state.sources.length < 4;
+  const shown = state.sources.filter((s) => !query || (s.title + " " + s.content).toLowerCase().includes(query));
+
+  if (!state.sources.length) {
+    list.innerHTML = '<div class="empty-notes">Nothing added yet.<br>Use the buttons above to add your price list, projects or FAQs.</div>';
+  } else if (!shown.length) {
+    list.innerHTML = '<div class="empty-notes">Nothing matches your search.</div>';
+  } else {
+    list.replaceChildren(...shown.map(noteCard));
+  }
+  updateMeter();
+}
+
+function noteCard(src) {
+  const card = document.createElement("details");
+  card.className = "note";
+  card.innerHTML = `
+    <summary><span class="t"></span><span class="s"></span><span class="p"></span></summary>
+    <div class="body">
+      <div class="field" style="margin:0"><label>Title <input type="text" class="title" style="margin-top:4px;font-weight:400"></label></div>
+      <div class="field" style="margin:0"><label>Information <textarea class="text" style="margin-top:4px;font-weight:400"></textarea></label></div>
+      <div class="row"><span class="small muted">Changes are kept when you press Save.</span><button type="button" class="danger">Delete</button></div>
+    </div>`;
+  const [t, s, p] = card.querySelectorAll("summary span");
+  const title = card.querySelector(".title");
+  const text = card.querySelector(".text");
+  const paint = () => { t.textContent = src.title || "Untitled"; s.textContent = sizeLabel(src.content.length); p.textContent = preview(src.content); };
+  title.value = src.title;
+  text.value = src.content;
+  paint();
+  title.addEventListener("input", () => { src.title = title.value; paint(); updateSaveBar(); });
+  text.addEventListener("input", () => { src.content = text.value; paint(); updateMeter(); updateSaveBar(); });
+  card.querySelector(".danger").addEventListener("click", () => {
+    if (!confirm(`Delete "${src.title || "Untitled"}"? You can still undo before saving.`)) return;
+    state.sources.splice(state.sources.indexOf(src), 1);
+    renderNotes();
+    updateSaveBar();
+  });
+  card.src = src;
+  return card;
+}
+
+// one shared space for information and houses, shown on both pages
+function updateMeter() {
+  const used = countChars();
+  const pct = Math.min(100, (used / MAX_CHARS) * 100);
+  document.querySelectorAll(".meter").forEach((meter) => {
+    meter.querySelector("i").style.width = pct + "%";
+    meter.classList.toggle("full", used > MAX_CHARS);
+    meter.querySelector("span").textContent =
+      used > MAX_CHARS ? "Too much information. Please remove some." : `${Math.max(1, Math.round(pct))}% of space used (information and houses together)`;
+    meter.hidden = !state.sources.length && !state.houses.length;
+  });
+}
+
+/* ---------- houses for sale ---------- */
+const today = () => new Date().toISOString().slice(0, 10);
+
+function renderHouses() {
+  const query = $("houseSearch").value.trim().toLowerCase();
+  const list = $("houses");
+  $("houseSearch").hidden = state.houses.length < 4;
+  renderCount();
+  const shown = state.houses.filter((h) => !query || [h.name, h.area, h.town].join(" ").toLowerCase().includes(query));
+
+  if (!state.houses.length) {
+    list.innerHTML = '<div class="empty-notes">No houses yet.<br>Click "Add a house" to add your first one.</div>';
+  } else if (!shown.length) {
+    list.innerHTML = '<div class="empty-notes">Nothing matches your search.</div>';
+  } else {
+    list.replaceChildren(...shown.map(houseCard));
+  }
+  refreshAreas();
+  updateMeter();
+}
+
+function refreshAreas() {
+  const areas = [...new Set(state.houses.map((h) => (h.area || "").trim()).filter(Boolean))];
+  $("areaList").replaceChildren(...areas.map((a) => Object.assign(document.createElement("option"), { value: a })));
+}
+
+function houseCard(house) {
+  const card = document.createElement("details");
+  card.className = "note house";
+  card.innerHTML = `
+    <summary><span class="t"></span><span class="s"><span class="badge"></span></span><span class="p"></span></summary>
+    <div class="body">
+      <div class="grid2">
+        <label class="wide">House or model name <input type="text" data-k="name" placeholder="e.g. Bella model, Sunrise Homes"></label>
+        <label>Area <input type="text" data-k="area" list="areaList" placeholder="e.g. Pampanga"></label>
+        <label>Town or city <input type="text" data-k="town" placeholder="e.g. Mabalacat"></label>
+        <div class="wide"><span class="group">Is it available?</span><div class="chips" style="margin:6px 0 0"></div></div>
+        <div class="wide group">Prices</div>
+        <p class="wide price-note">Your bot won't mention these amounts while "An agent gives the prices" is chosen.</p>
+        <label>Total price <input type="text" data-k="price" placeholder="e.g. ₱1,850,000"></label>
+        <label>Reservation fee <input type="text" data-k="reservation" placeholder="e.g. ₱10,000"></label>
+        <label>Down payment <input type="text" data-k="downPayment" placeholder="e.g. ₱8,500/month for 12 months"></label>
+        <label>Monthly payment <input type="text" data-k="monthly" placeholder="e.g. about ₱11,000 through Pag-IBIG"></label>
+        <label>Prices as of <input type="date" data-k="asOf"></label>
+        <div class="wide group">The house</div>
+        <label>Lot area <input type="text" data-k="lotArea" placeholder="e.g. 80 sqm"></label>
+        <label>Floor area <input type="text" data-k="floorArea" placeholder="e.g. 45 sqm"></label>
+        <label>Bedrooms <input type="text" data-k="bedrooms" placeholder="e.g. 2"></label>
+        <label>Bathrooms <input type="text" data-k="bathrooms" placeholder="e.g. 1"></label>
+        <label class="wide">Features <textarea data-k="features" placeholder="e.g. Gated, near school and market, with carport"></textarea></label>
+        <label class="wide">Notes for your bot <textarea data-k="notes" placeholder="e.g. Ready for move-in. Promo until December 31."></textarea></label>
+      </div>
+      <div class="row">
+        <button type="button" class="copy">Copy this house</button>
+        <button type="button" class="danger">Delete</button>
+      </div>
+    </div>`;
+  const [t, , p] = card.querySelectorAll("summary > span");
+  const badge = card.querySelector(".badge");
+  const chips = card.querySelector(".chips");
+  const paint = () => {
+    const status = STATUSES.find(([v]) => v === house.status) ?? STATUSES[0];
+    t.textContent = house.name || "New house";
+    badge.textContent = status[1];
+    badge.className = "badge " + status[2];
+    p.textContent = [house.area, house.town, house.price].map((v) => (v || "").trim()).filter(Boolean).join(" · ") || "Click to add the details.";
+    chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.value === status[0])));
+  };
+  for (const [value, label] of STATUSES) {
+    const chip = Object.assign(document.createElement("button"), { type: "button", className: "chip", textContent: label });
+    chip.dataset.value = value;
+    chip.addEventListener("click", () => { house.status = value; paint(); renderCount(); updateSaveBar(); });
+    chips.append(chip);
+  }
+  card.querySelectorAll("[data-k]").forEach((input) => {
+    input.value = house[input.dataset.k] ?? "";
+    input.addEventListener("input", () => {
+      house[input.dataset.k] = input.value;
+      paint();
+      if (input.dataset.k === "area") refreshAreas();
+      updateMeter();
+      updateSaveBar();
+    });
+  });
+  card.querySelector(".copy").addEventListener("click", () => addHouse({ ...house, name: (house.name || "House") + " (copy)" }, house));
+  card.querySelector(".danger").addEventListener("click", () => {
+    if (!confirm(`Delete "${house.name || "New house"}"? You can still undo before saving.`)) return;
+    state.houses.splice(state.houses.indexOf(house), 1);
+    renderHouses();
+    updateSaveBar();
+  });
+  paint();
+  card.house = house;
+  return card;
+}
+
+function renderCount() {
+  const available = state.houses.filter((h) => h.status !== "sold out").length;
+  $("houseCount").textContent = state.houses.length ? `${state.houses.length} added, ${available} available` : "";
+}
+
+// new house goes first, a copy goes right after the house it was copied from
+function addHouse(house, after) {
+  const at = after ? state.houses.indexOf(after) + 1 : 0;
+  state.houses.splice(at, 0, house);
+  $("houseSearch").value = "";
+  renderHouses();
+  updateSaveBar();
+  const card = [...$("houses").children].find((c) => c.house === house);
+  if (card) {
+    card.open = true;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.querySelector("[data-k=name]").focus();
+  }
+}
+
+$("addHouse").addEventListener("click", () => addHouse({ name: "", area: "", town: "", status: "available", asOf: today() }));
+$("houseSearch").addEventListener("input", renderHouses);
+
+/* ---------- buyer details ---------- */
+function renderLeads() {
+  $("leadQuestions").replaceChildren(...Object.entries(LEAD_LABELS).map(([key, label]) => {
+    const row = document.createElement("label");
+    const box = Object.assign(document.createElement("input"), { type: "checkbox", checked: state.leadQuestions.includes(key) });
+    box.addEventListener("change", () => {
+      state.leadQuestions = Object.keys(LEAD_LABELS).filter((k) => (k === key ? box.checked : state.leadQuestions.includes(k)));
+      updateSaveBar();
+    });
+    row.append(box, label);
+    return row;
+  }));
+}
+
+function addNote(title, content, open = false) {
+  const src = { title, content };
+  state.sources.unshift(src);
+  $("search").value = "";
+  renderNotes();
+  updateSaveBar();
+  const card = [...$("notes").children].find((c) => c.src === src);
+  if (card) {
+    card.open = open;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (open) card.querySelector(".text").focus();
+  }
+}
+
+function notesError(text) { $("notesErr").textContent = text || ""; $("notesErr").hidden = !text; }
+
+$("search").addEventListener("input", renderNotes);
+$("addText").addEventListener("click", () => { notesError(); addNote("New information", "", true); });
+$("addUrl").addEventListener("click", () => { notesError(); $("urlRow").hidden = false; $("urlInput").focus(); });
+$("urlCancel").addEventListener("click", () => { $("urlRow").hidden = true; $("urlInput").value = ""; });
+$("urlInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("urlGo").click(); } });
+$("urlGo").addEventListener("click", async () => {
+  let url = $("urlInput").value.trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  notesError();
+  $("urlGo").disabled = true;
+  $("urlGo").textContent = "Copying…";
+  try {
+    const res = await api("/api/import", { method: "POST", body: JSON.stringify({ url }) });
+    if (!res.ok) throw new Error("We couldn't copy that page. Make sure the link is correct and the page is public. Facebook pages can't be copied; type or paste that information instead.");
+    const { title, content } = await res.json();
+    addNote(title, content);
+    $("urlInput").value = "";
+    $("urlRow").hidden = true;
+    toast("Page added. Remember to save.");
+  } catch (err) {
+    notesError(err.message);
+  } finally {
+    $("urlGo").disabled = false;
+    $("urlGo").textContent = "Add";
+  }
+});
+
+$("addFile").addEventListener("click", () => { notesError(); $("fileInput").click(); });
+$("fileInput").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+
+async function addFiles(files) {
+  for (const file of files) {
+    if (!/\.(txt|md|csv)$/i.test(file.name) && !file.type.startsWith("text/")) {
+      notesError(`"${file.name}" can't be read. For Word or PDF files, open the file, copy the text, and use "Type or paste".`);
+      continue;
+    }
+    if (file.size > 2_000_000) { notesError(`"${file.name}" is too large.`); continue; }
+    addNote(file.name.replace(/\.[^.]+$/, ""), await file.text());
+  }
+}
+
+// drag and drop a file anywhere on the page
+let dragDepth = 0;
+addEventListener("dragenter", (e) => { if (!$("app").hidden && e.dataTransfer.types.includes("Files")) { dragDepth++; $("drop").hidden = false; } });
+addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("drop").hidden = true; } });
+addEventListener("dragover", (e) => e.preventDefault());
+addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  $("drop").hidden = true;
+  if ($("app").hidden || !e.dataTransfer.files.length) return;
+  location.hash = "#knows";
+  notesError();
+  addFiles(e.dataTransfer.files);
+});
+
+/* ---------- saving ---------- */
+const isDirty = () => state && JSON.stringify(state) !== savedJson;
+function updateSaveBar() { $("savebar").hidden = !isDirty(); }
+
+async function save() {
+  if (!isDirty()) return;
+  $("save").disabled = true;
+  $("save").textContent = "Saving…";
+  try {
+    const res = await api("/api/settings", { method: "PUT", body: JSON.stringify(state) });
+    if (!res.ok) throw new Error(plain(await res.text()));
+    load(await res.json());
+    toast("✓ Saved. Your bot is using the new information now.");
+    checkSetup();
+  } catch (err) {
+    alert("Couldn't save: " + plain(err.message));
+  } finally {
+    $("save").disabled = false;
+    $("save").textContent = "Save";
+  }
+}
+
+$("save").addEventListener("click", save);
+$("discard").addEventListener("click", () => { if (confirm("Undo all changes since you last saved?")) load(JSON.parse(savedJson)); });
+addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && state) { e.preventDefault(); save(); } });
+addEventListener("beforeunload", (e) => { if (isDirty()) e.preventDefault(); });
+
+/* ---------- setup checklist ---------- */
+async function checkSetup() {
+  let status = { aiKey: true, facebook: true, storage: true };
+  try { const res = await api("/api/status"); if (res.ok) status = await res.json(); } catch {}
+  const hasInfo = Boolean((state.business || "").trim() || state.sources.length || state.houses.length);
+  const items = [
+    [status.aiKey && status.storage, "Bot is switched on", "Bot isn't switched on yet (ask your developer)"],
+    [status.facebook, "Connected to your Facebook Page", "Not connected to Facebook yet (ask your developer)"],
+    [hasInfo, "Bot has information to answer with", "Add information about your business below"],
+  ];
+  const done = items.every(([ok]) => ok);
+  const box = $("setup");
+  box.className = "setup" + (done ? " done" : "");
+  box.innerHTML = `<strong>${done ? "✅ Your bot is ready and replying on Facebook." : "Almost there. A few things still need to be done:"}</strong>`;
+  if (!done) for (const [ok, yes, no] of items) box.append(Object.assign(document.createElement("span"), { textContent: (ok ? "✅ " : "⬜ ") + (ok ? yes : no) }));
+  box.hidden = false;
+}
+
+/* ---------- sections ---------- */
+function route() {
+  const view = ["knows", "houses", "talks", "more"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "knows";
+  document.querySelectorAll("[data-view]").forEach((s) => (s.hidden = s.dataset.view !== view));
+  document.querySelectorAll("[data-nav]").forEach((a) => (a.dataset.nav === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+  $("setup").style.display = view === "knows" ? "" : "none";
+  scrollTo(0, 0);
+}
+addEventListener("hashchange", route);
+$("webhookUrl").textContent = location.origin + "/api/webhook";
+
+/* ---------- try your bot ---------- */
+function bubble(kind, text) {
+  $("log").querySelector(".starter")?.remove();
+  const div = document.createElement("div");
+  div.className = "bubble " + kind;
+  if (text === null) div.innerHTML = '<span class="typing" aria-label="Bot is typing"><i></i><i></i><i></i></span>';
+  else div.textContent = text;
+  $("log").append(div);
+  $("log").scrollTop = $("log").scrollHeight;
+  return div;
+}
+
+function showStarters() {
+  const box = document.createElement("div");
+  box.className = "starter";
+  box.innerHTML = '<p class="muted small">Ask a question the way a customer would, or tap one:</p><div class="chips"></div>';
+  for (const q of STARTERS) {
+    const chip = Object.assign(document.createElement("button"), { type: "button", className: "chip", textContent: q });
+    chip.addEventListener("click", () => ask(q));
+    box.querySelector(".chips").append(chip);
+  }
+  $("log").replaceChildren(box);
+}
+
+async function ask(text) {
+  text = text.trim();
+  if (!text || $("send").disabled) return;
+  bubble("user", text);
+  history.push({ role: "user", content: text });
+  $("send").disabled = true;
+  const typing = bubble("bot", null);
+  try {
+    const res = await api("/api/chat", { method: "POST", body: JSON.stringify({ settings: state, messages: history }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Something went wrong.");
+    typing.textContent = data.reply;
+    history.push({ role: "assistant", content: data.reply });
+  } catch (err) {
+    typing.remove();
+    history.pop();
+    bubble("problem", "⚠️ " + plain(err.message));
+  } finally {
+    $("send").disabled = false;
+    $("chatInput").focus();
+  }
+}
+
+$("chatForm").addEventListener("submit", (e) => { e.preventDefault(); const t = $("chatInput").value; $("chatInput").value = ""; ask(t); });
+$("reset").addEventListener("click", () => { history = []; showStarters(); });
+$("openChat").addEventListener("click", () => { $("chat").classList.add("open"); $("chatInput").focus(); });
+$("closeChat").addEventListener("click", () => $("chat").classList.remove("open"));
+showStarters();
+
+/* ---------- start ---------- */
+const remembered = store.get();
+if (remembered) signIn(remembered).catch(() => store.clear());
+</script>
+</body>
+</html>

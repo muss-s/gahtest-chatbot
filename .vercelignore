@@ -1,0 +1,9 @@
+# Upload only what the live site needs. Notes, tests, scans and local tools stay on this computer.
+/*
+!api
+!lib
+!index.html
+!site
+!package.json
+!manifest.webmanifest
+!sw.js

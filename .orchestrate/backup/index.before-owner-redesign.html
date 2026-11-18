@@ -1,0 +1,1606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bot Studio</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f3f4f6; --panel: #fff; --text: #111827; --muted: #6b7280; --line: #e5e7eb; --soft: #f9fafb;
+    --accent: #0866ff; --accent-soft: #e8f0ff; --accent-text: #fff; --bubble: #eef0f3;
+    --ok: #15803d; --ok-soft: #dcfce7; --warn: #a16207; --warn-soft: #fef9c3; --err: #dc2626; --err-soft: #fee2e2;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #181b21; --text: #e5e7eb; --muted: #9ca3af; --line: #2a2f37; --soft: #1f232a;
+      --accent-soft: #15233f; --bubble: #262b33; --ok: #4ade80; --ok-soft: #10301c; --warn: #facc15; --warn-soft: #322b0a;
+      --err: #f87171; --err-soft: #3a1414; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
+  h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; border-radius: 10px; padding: 10px 16px; min-height: 44px; background: var(--bubble); }
+  button:hover { filter: brightness(.97); }
+  button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.ghost { background: none; color: var(--muted); }
+  button.danger { background: none; color: var(--err); }
+  button.link { background: none; color: var(--accent); padding: 4px 0; min-height: 44px; font-size: 14px; text-align: left; }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  input[type=text], input[type=url], input[type=password], input[type=date], textarea, select {
+    width: 100%; min-height: 44px; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px;
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; background: var(--panel); }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+  [hidden] { display: none !important; }
+  .short { display: none; }
+
+  /* sign in */
+  .login { max-width: 400px; margin: 10vh auto; padding: 0 16px; }
+  .login .card { padding: 28px; }
+  .login h1 { font-size: 22px; margin-bottom: 6px; }
+  .pw-row { position: relative; }
+  .pw-row input { padding-right: 70px; }
+  .pw-row button { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 6px 10px; font-size: 14px; background: none; color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; margin: 14px 0 18px; font-size: 15px; min-height: 44px; }
+  .check input { width: 20px; height: 20px; }
+
+  /* layout */
+  .app { display: grid; grid-template-columns: 230px minmax(0, 1fr) 400px; min-height: 100vh; }
+  .nav { background: var(--panel); border-right: 1px solid var(--line); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; z-index: 20; }
+  .brand { display: flex; gap: 10px; align-items: center; padding: 0 8px 18px; font-weight: 700; font-size: 18px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; font-size: 18px; }
+  .nav a, .nav .navtry { display: flex; gap: 10px; align-items: center; padding: 10px 12px; min-height: 44px; border-radius: 10px; color: var(--text); text-decoration: none; background: none; font-weight: 400; text-align: left; }
+  .nav a:hover, .nav .navtry:hover { background: var(--soft); }
+  .nav a[aria-current=page] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav .navtry { display: none; }
+  .nav .spacer { flex: 1; }
+  .content { padding: 28px 32px 120px; max-width: 860px; width: 100%; min-width: 0; }
+  .page-head { margin-bottom: 20px; }
+  .page-head h1 { font-size: 26px; margin-bottom: 4px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 16px; }
+  .card h2 { font-size: 17px; margin-bottom: 4px; }
+  .field { margin-top: 18px; }
+  .field label { display: block; font-weight: 600; margin-bottom: 4px; }
+  .field .help { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+  textarea.grow { min-height: 160px; field-sizing: content; max-height: 70vh; }
+
+  /* setup banner and first-time guide */
+  .setup { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding: 14px 18px; margin-bottom: 16px; border-radius: 14px; background: var(--warn-soft); }
+  .setup.done { background: var(--ok-soft); }
+  .setup strong { width: 100%; }
+  .setup span { font-size: 15px; }
+  .setup details.dev { margin-top: 0; width: 100%; font-size: 14px; }
+  .guide { margin-bottom: 16px; }
+  .steps { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+  .steps button { width: 100%; display: flex; gap: 12px; align-items: center; text-align: left; background: var(--soft); border: 1px solid var(--line); padding: 10px 14px; }
+  .steps .num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .steps .done .num { background: var(--ok-soft); color: var(--ok); }
+  .steps .done b { text-decoration: line-through; color: var(--muted); }
+  .steps small { display: block; color: var(--muted); font-size: 13px; }
+
+  /* knowledge */
+  .meter { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .meter .bar { flex: 0 0 30%; height: 8px; background: var(--bubble); border-radius: 99px; overflow: hidden; }
+  .meter .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+  .meter.full { color: var(--err); font-weight: 600; }
+  .meter.full .bar i { background: var(--err); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 18px 0; }
+  .tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 16px; border: 1px dashed var(--line); background: var(--soft); border-radius: 14px; }
+  .tile:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .tile .ico { font-size: 24px; }
+  .tile b { font-size: 15px; }
+  .tile small { color: var(--muted); font-size: 13px; }
+  .picker { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; background: var(--soft); }
+  .picker .chips { margin: 10px 0 0; }
+  .url-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .url-row input { flex: 1 1 220px; }
+  .search { margin-bottom: 12px; }
+  .notes { display: flex; flex-direction: column; gap: 10px; }
+  .note { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); min-width: 0; }
+  .note summary { list-style: none; cursor: pointer; padding: 12px 16px; min-height: 48px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; }
+  .note summary::-webkit-details-marker { display: none; }
+  .note summary .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note summary .s { font-size: 13px; color: var(--muted); grid-row: span 3; align-self: center; white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .note summary .p, .note summary .d { font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note summary .d.old { color: var(--warn); font-weight: 600; }
+  .note[open] > summary { border-bottom: 1px solid var(--line); }
+  .note .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .note .body textarea.text { min-height: 220px; }
+  .note .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .draft { background: var(--warn-soft); color: var(--text); border-radius: 10px; padding: 8px 12px; font-size: 14px; display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .empty-notes { text-align: center; padding: 30px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
+  .drop { position: fixed; inset: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); display: grid; place-items: center; z-index: 50; pointer-events: none; }
+  .drop div { background: var(--panel); padding: 24px 32px; border-radius: 16px; font-weight: 600; box-shadow: var(--shadow); }
+  .msg-err { color: var(--err); font-size: 14px; margin: 8px 0 0; }
+
+  /* houses */
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid2 > * { min-width: 0; }
+  .grid2 .wide { grid-column: 1 / -1; }
+  .house .body label, .opt label, .review label { display: block; font-weight: 600; font-size: 14px; }
+  .house .body label input, .house .body label textarea { margin-top: 4px; font-weight: 400; }
+  .house .body textarea { min-height: 70px; }
+  .group { font-weight: 700; margin-top: 6px; }
+  .badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; background: var(--ok-soft); color: var(--ok); }
+  .badge.few, .badge.old { background: var(--warn-soft); color: var(--warn); }
+  .badge.sold { background: var(--bubble); color: var(--muted); }
+  .price-note { display: none; font-size: 14px; color: var(--warn); margin: 0; }
+  [data-pricing=agent] .price-note { display: block; }
+  .ticks { display: grid; gap: 4px; margin-top: 12px; }
+  .ticks label { display: flex; gap: 10px; align-items: center; font-weight: 400; min-height: 44px; }
+  .ticks input { width: 20px; height: 20px; flex: none; }
+  .proj { border: 1px solid var(--line); border-radius: 14px; background: var(--soft); }
+  .proj > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 14px; min-height: 52px; font-weight: 700; }
+  .proj > summary::-webkit-details-marker { display: none; }
+  .proj > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+  .proj[open] > summary::before { transform: rotate(90deg); }
+  .proj > summary .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .proj > summary .cnt { font-weight: 400; color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .proj-body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 10px; }
+  .proj-tools { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+  .proj-tools button { font-size: 14px; padding: 8px 12px; }
+  .opts { display: flex; flex-direction: column; gap: 10px; }
+  .opt { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--soft); }
+  .opt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .opt-head h4 { font-size: 15px; }
+  .opt label input { margin-top: 4px; font-weight: 400; background: var(--panel); }
+  .opt .pair { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 8px; align-items: end; }
+  .add-opts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .paste, .review { border: 1px dashed var(--accent); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .paste textarea { min-height: 120px; }
+  .review label input { margin-top: 4px; font-weight: 400; }
+  .stale-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line); }
+  .stale-row:first-child { border-top: 0; }
+  .stale-row > div:first-child { min-width: 0; flex: 1 1 180px; }
+  .stale-row .btns { display: flex; gap: 8px; }
+  #staleCard { border-color: var(--warn); }
+
+  /* choice chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .chip { padding: 8px 14px; border-radius: 99px; background: var(--soft); border: 1px solid var(--line); font-size: 15px; min-height: 44px; }
+  .chip[aria-pressed=true] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  details.dev { margin-top: 16px; }
+  details.dev summary { cursor: pointer; color: var(--muted); min-height: 32px; }
+  details.dev code { display: block; margin-top: 8px; padding: 10px 12px; background: var(--soft); border-radius: 8px; word-break: break-all; font-size: 14px; }
+
+  /* try-it chat */
+  .chat { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; min-width: 0; }
+  .chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; font-weight: 700; flex: none; }
+  .chat-head .who { flex: 1; min-width: 0; }
+  .chat-head .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .unsaved-note { margin: 0; padding: 8px 16px; font-size: 13px; background: var(--accent-soft); color: var(--text); }
+  .log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .bubble { max-width: 82%; padding: 9px 13px; border-radius: 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bubble.user { align-self: flex-end; background: var(--accent); color: var(--accent-text); border-bottom-right-radius: 6px; }
+  .bubble.bot { align-self: flex-start; background: var(--bubble); border-bottom-left-radius: 6px; }
+  .bubble.problem { align-self: stretch; max-width: none; background: var(--warn-soft); border-radius: 12px; font-size: 14px; }
+  .fix { align-self: flex-start; margin-top: -4px; }
+  .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+  .starter { margin: auto 0; text-align: center; }
+  .qmenu { border-top: 1px solid var(--line); padding: 10px 14px; max-height: 45%; overflow-y: auto; background: var(--soft); }
+  .qmenu h4 { font-size: 13px; color: var(--muted); margin: 8px 0 6px; text-transform: uppercase; letter-spacing: .03em; }
+  .qmenu h4:first-child { margin-top: 0; }
+  .qmenu .chips { margin-bottom: 4px; }
+  .qmenu .chip { font-size: 14px; text-align: left; }
+  .qbar { display: flex; justify-content: space-between; align-items: center; padding: 0 8px; border-top: 1px solid var(--line); }
+  .chat form { display: flex; gap: 8px; padding: 0 12px 12px; }
+  .chat form input { min-width: 0; }
+  .chat .close { display: none; }
+
+  /* save bar, toast, dialog */
+  .savebar { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 18px; background: var(--text); color: var(--panel); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); z-index: 40; max-width: calc(100vw - 32px); }
+  .savebar .msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .savebar .ghost { color: inherit; opacity: .8; }
+  .savebar button { white-space: nowrap; }
+  .toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: var(--ok); color: #fff; padding: 6px 8px 6px 18px; min-height: 48px; border-radius: 12px; z-index: 41; font-weight: 600; max-width: calc(100vw - 32px); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .toast.plain { background: #1f2937; }
+  .toast button { background: rgba(255,255,255,.18); color: #fff; font-weight: 700; }
+  dialog { border: 0; border-radius: 16px; padding: 22px; max-width: min(440px, calc(100vw - 32px)); background: var(--panel); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog h2 { font-size: 18px; margin-bottom: 8px; }
+  dialog p { margin: 0 0 12px; }
+  .dlg-btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  button.primary.red { background: var(--err); }
+
+  /* smaller screens */
+  @media (max-width: 1180px) {
+    .app { grid-template-columns: 230px minmax(0, 1fr); }
+    .chat { position: fixed; right: 0; top: 0; width: min(420px, 100vw); z-index: 60; box-shadow: -10px 0 40px rgba(0,0,0,.2); }
+    .chat:not(.open) { display: none; }
+    .chat .close { display: block; }
+    .nav .navtry { display: flex; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .nav { height: auto; flex-direction: row; align-items: stretch; padding: 4px; gap: 2px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .brand, .nav .spacer, .nav .signout, .long { display: none; }
+    .short { display: inline; }
+    .nav a, .nav .navtry { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 0; padding: 4px 2px; min-height: 52px; font-size: 12px; text-align: center; line-height: 1.2; }
+    .nav .ico { font-size: 18px; }
+    .content { padding: 18px 16px 100px; }
+    .card { padding: 16px; }
+    .grid2 { grid-template-columns: minmax(0, 1fr); }
+    .opt .pair { grid-template-columns: minmax(0, 1fr) 96px; }
+    .tile { flex-direction: row; align-items: center; gap: 12px; }
+    .page-head h1 { font-size: 22px; }
+    .chat { width: 100vw; height: 100dvh; }
+    .savebar { left: 0; right: 0; bottom: 0; transform: none; max-width: none; border-radius: 0; padding: 6px 8px 6px 14px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+    .savebar .msg { flex: 1; }
+    .savebar button { padding: 10px 12px; }
+    .toast { bottom: 72px; }
+    .meter { flex-wrap: wrap; }
+    .meter .bar { flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sign in -->
+<div id="login" class="login">
+  <div class="card">
+    <h1>Bot Studio</h1>
+    <p class="muted">Sign in to change what your Facebook Page bot says.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="pw">Password</label>
+        <div class="pw-row">
+          <input id="pw" type="password" autocomplete="current-password" required>
+          <button type="button" id="pwToggle" aria-label="Show password">Show</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="remember"> Keep me signed in on this device</label>
+      <p id="loginErr" class="msg-err" role="alert" hidden></p>
+      <button class="primary" style="width:100%">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" class="app" hidden>
+  <nav class="nav" aria-label="Sections">
+    <div class="brand"><span class="logo" aria-hidden="true">💬</span>Bot Studio</div>
+    <a href="#knows" data-nav="knows"><span class="ico" aria-hidden="true">📚</span><span class="long">What your bot knows</span><span class="short">Info</span></a>
+    <a href="#houses" data-nav="houses"><span class="ico" aria-hidden="true">🏠</span><span class="long">Houses for sale</span><span class="short">Houses</span></a>
+    <a href="#talks" data-nav="talks"><span class="ico" aria-hidden="true">🗣️</span><span class="long">How your bot talks</span><span class="short">Talk</span></a>
+    <a href="#more" data-nav="more"><span class="ico" aria-hidden="true">⚙️</span><span class="long">More settings</span><span class="short">More</span></a>
+    <button type="button" class="navtry" id="openChat"><span class="ico" aria-hidden="true">💬</span><span class="long">Try your bot</span><span class="short">Try</span></button>
+    <div class="spacer"></div>
+    <button class="ghost signout" type="button" data-signout>Sign out</button>
+  </nav>
+
+  <main class="content">
+    <div id="setup" class="setup" role="status" hidden></div>
+
+    <div id="guide" class="card guide" hidden>
+      <div class="card-head" style="margin-bottom:0">
+        <h2>Get started in 3 steps</h2>
+        <button type="button" class="ghost" id="guideHide">Hide this guide</button>
+      </div>
+      <ol class="steps" id="steps"></ol>
+    </div>
+
+    <!-- What your bot knows -->
+    <section data-view="knows">
+      <div class="page-head">
+        <h1>What your bot knows</h1>
+        <p class="muted">Your bot answers customers using only what you add here. Prices for each house go in <a href="#houses">Houses for sale</a>. Use this page for requirements, steps and common questions.</p>
+      </div>
+
+      <div class="card">
+        <h2>Main details</h2>
+        <div class="field">
+          <label for="business">About your business</label>
+          <p class="help">A few sentences: what you sell, where, and how people can pay.</p>
+          <textarea id="business" class="grow" data-field="business"></textarea>
+        </div>
+        <div class="field">
+          <label for="knowledge">Important details to always mention</label>
+          <p class="help">Phone numbers, office hours, address.</p>
+          <textarea id="knowledge" class="grow" data-field="knowledge" style="min-height:110px"></textarea>
+        </div>
+      </div>
+
+      <div class="card" id="notesCard">
+        <h2>More information</h2>
+        <p class="muted small" style="margin:0">Requirements, buying steps, payment rules and common questions. Put the prices of each house in <a href="#houses">Houses for sale</a>, not here.</p>
+        <div class="meter"><div class="bar"><i></i></div><span></span></div>
+
+        <div class="tiles">
+          <button type="button" class="tile" id="addStarter"><span class="ico" aria-hidden="true">📋</span><b>Use a ready-made text</b><small>Requirements, steps, tripping and more</small></button>
+          <button type="button" class="tile" id="addText"><span class="ico" aria-hidden="true">✍️</span><b>Type or paste</b><small>Write it yourself or copy it in</small></button>
+          <button type="button" class="tile" id="addUrl"><span class="ico" aria-hidden="true">🌐</span><b>Copy from a website</b><small>Paste a web page link</small></button>
+          <button type="button" class="tile" id="addFile"><span class="ico" aria-hidden="true">📄</span><b>Upload a text file</b><small>.txt files, or drag one here</small></button>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.md,.csv,text/plain,text/csv,text/markdown" multiple hidden>
+
+        <div class="picker" id="starterPicker" hidden>
+          <b>Pick a ready-made text</b>
+          <p class="small muted" style="margin:2px 0 0">It uses your team's usual wording, without prices. You can change everything before saving.</p>
+          <div class="chips" id="starterChips"></div>
+          <button type="button" class="ghost" id="starterCancel">Cancel</button>
+        </div>
+
+        <div class="picker" id="titleRow" hidden>
+          <label for="titleInput"><b>What is it about?</b></label>
+          <p class="small muted" style="margin:2px 0 8px">A short title helps you find it later, e.g. "Bank loan requirements".</p>
+          <div class="url-row" style="margin:0">
+            <input type="text" id="titleInput" placeholder="e.g. Bank loan requirements">
+            <button type="button" class="primary" id="titleGo">Add</button>
+            <button type="button" class="ghost" id="titleCancel">Cancel</button>
+          </div>
+        </div>
+
+        <div class="url-row" id="urlRow" hidden>
+          <input type="url" id="urlInput" placeholder="Paste the web page link, e.g. https://yourwebsite.com/projects" aria-label="Web page link">
+          <button type="button" class="primary" id="urlGo">Add</button>
+          <button type="button" class="ghost" id="urlCancel">Cancel</button>
+        </div>
+        <p id="notesErr" class="msg-err" role="alert" hidden></p>
+
+        <input type="text" class="search" id="search" placeholder="🔍 Search your information" aria-label="Search your information" hidden>
+        <div class="notes" id="notes"></div>
+      </div>
+    </section>
+
+    <!-- Houses for sale -->
+    <section data-view="houses" hidden>
+      <div class="page-head">
+        <h1>Houses for sale</h1>
+        <p class="muted">Add each house model you're selling, with its prices. Your bot can then tell customers what's available, where, and how much.</p>
+      </div>
+
+      <div class="card" id="staleCard" hidden>
+        <h2>⚠️ Needs checking</h2>
+        <p class="small muted" style="margin:0 0 6px">These prices are more than 30 days old. Ask your team if they're still correct.</p>
+        <div id="staleList"></div>
+      </div>
+
+      <div class="card">
+        <h2>When customers ask "Magkano?"</h2>
+        <div class="field" style="margin-top:10px">
+          <div class="chips" data-chips="pricing">
+            <button type="button" class="chip" data-value="share">💬 Bot shares the prices I enter</button>
+            <button type="button" class="chip" data-value="agent">🙋 An agent gives the prices</button>
+          </div>
+          <input type="hidden" id="pricing" data-field="pricing">
+          <p class="help" style="margin:0">If you choose "An agent gives the prices", the bot describes the house but never mentions any amount.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h2>Your houses</h2><span class="small muted" id="houseCount"></span></div>
+          <button type="button" class="primary" id="addHouse">+ Add a house</button>
+        </div>
+        <div class="meter"><div class="bar"><i></i></div><span></span></div>
+        <input type="text" class="search" id="houseSearch" placeholder="🔍 Search by model, project, area or town" aria-label="Search houses" hidden style="margin-top:12px">
+        <div class="notes" id="houses" style="margin-top:12px"></div>
+        <datalist id="areaList"></datalist>
+        <datalist id="projectList"></datalist>
+      </div>
+    </section>
+
+    <!-- How your bot talks -->
+    <section data-view="talks" hidden>
+      <div class="page-head">
+        <h1>How your bot talks</h1>
+        <p class="muted">Choose your bot's name, personality and language.</p>
+      </div>
+      <div class="card">
+        <div class="field" style="margin-top:0">
+          <label for="botName">Bot's name</label>
+          <p class="help">Customers may see this when the bot introduces itself.</p>
+          <input type="text" id="botName" data-field="botName">
+        </div>
+        <div class="field">
+          <label for="tone">How should your bot sound?</label>
+          <div class="chips" data-chips="tone">
+            <button type="button" class="chip" data-value="friendly">😊 Friendly</button>
+            <button type="button" class="chip" data-value="professional">💼 Professional</button>
+            <button type="button" class="chip" data-value="casual and relaxed">😎 Casual</button>
+            <button type="button" class="chip" data-value="warm and enthusiastic">🎉 Cheerful</button>
+            <button type="button" class="chip" data-value="polite and formal">🎩 Formal</button>
+          </div>
+          <input type="text" id="tone" data-field="tone" placeholder="Or describe it in your own words" aria-label="Describe how your bot should sound">
+        </div>
+        <div class="field">
+          <label for="language">Which language should it reply in?</label>
+          <div class="chips" data-chips="language">
+            <button type="button" class="chip" data-value="Reply in the language the customer uses (English, Tagalog or Taglish).">Same as the customer</button>
+            <button type="button" class="chip" data-value="Always reply in English.">English</button>
+            <button type="button" class="chip" data-value="Always reply in Tagalog.">Tagalog</button>
+            <button type="button" class="chip" data-value="Always reply in Taglish (a natural mix of Tagalog and English).">Taglish</button>
+          </div>
+          <input type="text" id="language" data-field="language" placeholder="Or type your own, e.g. Reply in Kapampangan when the customer does" aria-label="Language instruction">
+        </div>
+      </div>
+    </section>
+
+    <!-- More settings -->
+    <section data-view="more" hidden>
+      <div class="page-head">
+        <h1>More settings</h1>
+        <p class="muted">Extra instructions for your bot.</p>
+      </div>
+      <div class="card">
+        <h2>Getting buyer details</h2>
+        <p class="muted small" style="margin:0">When someone is interested, your bot asks for these, one or two at a time.</p>
+        <div class="ticks" id="leadQuestions"></div>
+      </div>
+      <div class="card">
+        <div class="field" style="margin-top:0">
+          <label for="rules">Things your bot should always or never do</label>
+          <p class="help">One per line. For example: "Always ask for the customer's budget" or "Never promise a discount".</p>
+          <textarea id="rules" class="grow" data-field="rules"></textarea>
+        </div>
+        <div class="field">
+          <label for="fallback">Message when something goes wrong</label>
+          <p class="help">Sent to the customer if the bot can't reply for some reason.</p>
+          <input type="text" id="fallback" data-field="fallback" placeholder="e.g. Pasensya na po, hindi ako makasagot ngayon. Paki-try ulit mamaya.">
+        </div>
+        <div class="field">
+          <label for="handoverNote">Message when passing a customer to an agent</label>
+          <p class="help">Added when the bot hands the chat to your team (customer gave their number, booked a visit, or asked for a person) and its reply doesn't already say an agent is coming. The bot then stays quiet (see below).</p>
+          <input type="text" id="handoverNote" data-field="handoverNote" placeholder="e.g. Ipapasa ko na po kayo sa aming agent, magme-message po sila dito soon.">
+        </div>
+        <div class="field">
+          <label for="waitingNote">Message if the customer writes again before an agent replies</label>
+          <p class="help">Sent once, so the customer knows they haven't been forgotten. After that the bot waits for your team.</p>
+          <input type="text" id="waitingNote" data-field="waitingNote" placeholder="e.g. Naipasa na po namin kayo sa aming agent, sandali lang po at magme-message sila dito.">
+        </div>
+        <div class="field">
+          <label for="quietMinutes">How long the bot stays out of a chat</label>
+          <p class="help">After one of your team replies, or after the bot passes a customer to an agent. Each reply from your team starts the time again. Changing this also applies to chats that are already waiting.</p>
+          <select id="quietMinutes" data-field="quietMinutes">
+            <option value="5">5 minutes (for testing)</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="120">2 hours</option>
+            <option value="240">4 hours</option>
+            <option value="720">12 hours</option>
+            <option value="1440">24 hours</option>
+          </select>
+        </div>
+        <details class="dev">
+          <summary>For your developer</summary>
+          <p class="small muted">Facebook connection link:</p>
+          <code id="webhookUrl"></code>
+        </details>
+      </div>
+      <div class="card">
+        <div class="card-head" style="margin:0">
+          <span class="muted small">Done for now?</span>
+          <button type="button" data-signout>Sign out</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Try your bot -->
+  <aside class="chat" id="chat" aria-label="Try your bot">
+    <div class="chat-head">
+      <div class="avatar" id="avatar">B</div>
+      <div class="who"><b id="chatName">Your bot</b><span class="small muted">Try it here. Customers won't see this.</span></div>
+      <button type="button" class="ghost" id="reset" title="Start a new conversation">Clear</button>
+      <button type="button" class="ghost close" id="closeChat" aria-label="Close">✕</button>
+    </div>
+    <p class="unsaved-note" id="unsavedNote">ℹ️ This test uses your changes, even unsaved ones. Customers only get what you save.</p>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="qmenu" id="qmenu" hidden></div>
+    <div class="qbar"><button type="button" class="link" id="qBtn" aria-expanded="false" style="padding:4px 6px">💡 Try a real question</button></div>
+    <form id="chatForm">
+      <input type="text" id="chatInput" placeholder="Ask your bot something…" autocomplete="off" aria-label="Your message">
+      <button class="primary" id="send">Send</button>
+    </form>
+  </aside>
+
+  <div class="savebar" id="savebar" hidden>
+    <span class="msg" id="saveMsg"><span class="long">You have unsaved changes</span><span class="short">Not saved</span></span>
+    <button type="button" class="ghost" id="discard">Undo changes</button>
+    <button type="button" class="primary" id="save">Save</button>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+
+<dialog id="dlg">
+  <h2 id="dlgTitle"></h2>
+  <p id="dlgText"></p>
+  <details class="dev" id="dlgDev" hidden><summary>For your developer</summary><code id="dlgCode"></code></details>
+  <div class="dlg-btns"><button type="button" class="ghost" id="dlgNo">Cancel</button><button type="button" class="primary" id="dlgYes">OK</button></div>
+</dialog>
+
+<div class="drop" id="drop" hidden><div>📄 Drop your file to add it</div></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const MAX_CHARS = 30000;
+const STALE_DAYS = 30;
+const FINANCING = ["Pag-IBIG", "Bank", "In-house"];
+// option fields, in form order: [key, label, placeholder, short (months/years)]
+const OPT_FIELDS = [
+  ["price", "Price", "e.g. 1,200,000"],
+  ["reservation", "Reservation fee", "e.g. 5,000"],
+  ["processingFee", "Processing fee", "e.g. 130,000"],
+  ["processingMonths", "Pay over (months)", "e.g. 12", true],
+  ["equity", "Equity / down payment", "e.g. 41,190.00"],
+  ["equityMonths", "Pay over (months)", "e.g. 12", true],
+  ["loanValue", "Loan value", "e.g. 1,158,810.00"],
+  ["monthly", "Monthly amortization", "e.g. 7,600.94"],
+  ["term", "Term (years)", "e.g. 30", true],
+];
+const OPT_KEYS = ["financing", ...OPT_FIELDS.map(([k]) => k)];
+const MONEY_KEYS = ["price", "reservation", "processingFee", "equity", "loanValue", "monthly", "term"]; // an option with none of these is dropped on save
+const QUESTIONS = [
+  ["Locations", ["What is the price? And location you serve?", "Do you have other properties in San Fernando, Pampanga?", "Meron po ba kayo sa Mabalacat?"]],
+  ["Prices", ["Can I get a sample computation for Scarlet - Mansfield Residences?", "What is the total contract price of Bloomfield?", "Can I get a list of payment terms and options?", "Ano po ang pinakamura, 3M and below?"]],
+  ["Payment", ["Can I avail if I am not a Pag-IBIG member?", "Pwede po ba 15 years ang monthly amortization?", "Is the processing fee refundable?", "Ano po ang unang babayaran, processing fee or monthly?"]],
+  ["Pag-IBIG or bank loan", ["Is Pag-IBIG approval guaranteed?", "Pasok po ba ang 26k basic income?", "Can I get a sample computation for a bank loan?"]],
+  ["Requirements", ["What are the requirements?", "Ano po kailangan sa reservation?"]],
+  ["Site visits", ["Can I book a tripping?", "Is Marigold available for viewing today?"]],
+  ["Photos and availability", ["Can you share photos of the units?", "Available pa po ba yung unit?", "When can we move in?"]],
+];
+// Ready-made texts: the team's own wording, with no prices or amounts.
+const STARTERS = [
+  ["Pag-IBIG requirements", `PAG-IBIG HOUSING LOAN REQUIREMENTS
+Basic requirements:
+1. 1x1 ID picture with signature at the back (4 pcs)
+2. TIN ID card or TIN number (1 photocopy)
+3. Birth certificate (1 photocopy)
+4. Certificate of No Record of Marriage (CENOMAR), if single (1 copy)
+5. Marriage contract (1 photocopy)
+6. Cedula, current year (1 photocopy)
+7. Proof of billing address (1 photocopy)
+8. MSVS (Membership Status Verification Slip), original and photocopy, with the accomplished Pag-IBIG Housing Loan Counseling Questionnaire and photocopy of 2 valid IDs of the applicant
+9. 2 valid IDs (principal buyer / spouse / SPA or attorney-in-fact)
+
+For private employees:
+A. Latest 1 month payslip, certified true copy (1 original and 2 copies)
+B. Certificate of Employment and Compensation (1 original and 2 copies)
+C. Latest 24 months of Pag-IBIG (HDMF) contributions
+D. ITR or BIR Form 2316 (2 copies)
+
+During reservation we can accept two valid IDs and a payslip or proof of income. We will give the list of the other requirements at the same time.
+Approval is decided by Pag-IBIG. Never promise that a loan will be approved.`],
+  ["Step-by-step buying process", `Step by step process:
+1. Mag site tripping.
+2. Magbayad ng reservation fee sa office or online.
+3. Mag-ayos ng requirements within 30 days.
+4. After 30 days, mag-start magbayad ng installment ng processing fee / down payment / equity (kung alin lang po ang kasama sa babayaran).
+5. Move-in date:
+- Pag-IBIG: once tapos na ang bayad sa processing fee at equity, isusubmit na kay Pag-IBIG. Kapag approved na ni Pag-IBIG, pwede na kayong lumipat.
+- In-house: once tapos na ang bayad sa processing fee at may [check with your team: how much of the down payment] na, pwede na kayong lumipat basta ready na ang bahay.`],
+  ["Site tripping booking", `Free site tripping. Please leave your contact details and we will schedule you:
+Full Name:
+Contact Number:
+Project Location:
+Meet-up Location:
+Time:
+Date:
+
+Viewing schedule: [check with your team: which days and hours]
+Ask which property the customer wants to see before scheduling. Then ask: "Kailan po available date & time nyo?"`],
+  ["Financing options", `Open for Pag-IBIG, Bank and In-house financing (depends on the project; check each house).
+Pag-IBIG members can avail a no-down-payment term.
+Non-Pag-IBIG members can still buy through in-house financing, with a minimum down payment of [check with your team] payable from 6 to 24 months.
+Maximum term: [check with your team: e.g. 15 or 30 years, depends on the project].
+Processing fee: payable over 6 to 12 months depending on the unit, by installment or spot cash.`],
+  ["Fees before move-in", `Before turnover of the house: clearance fee, fire extinguisher, and homeowners membership fee (about [check with your team: amount] in total).
+The buyer applies for their own electric and water connection. We provide the requirements.
+Pag-IBIG: no down payment. The order of payments is reservation fee, then processing fee, then monthly amortization once the loan is approved.`],
+];
+// same keys as LEAD_QUESTIONS in lib/bot.js
+const LEAD_LABELS = {
+  location: "📍 Preferred location",
+  budget: "💰 Budget or monthly payment they can afford",
+  payment: "🏦 Pag-IBIG, bank or in-house financing",
+  employment: "💼 Work (employed, own business, or OFW)",
+  contact: "📞 Name and mobile number",
+  visit: "🚗 Preferred date for a site visit",
+};
+const STATUSES = [["available", "Available", ""], ["few units left", "Few units left", "few"], ["sold out", "Sold out", "sold"]];
+
+let password = "";
+let state = null;      // settings being edited
+let savedJson = "";    // last saved copy, to know if something changed
+let chatHistory = [];  // try-it conversation
+let leaving = false;   // signing out on purpose: skip the browser's "Leave site?" warning
+let lastStatus = null;
+const openHouses = new WeakSet();   // house cards left open
+const closedProjects = new Set();   // project groups folded shut
+
+/* ---------- helpers ---------- */
+const local = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const store = {
+  get() { try { return sessionStorage.getItem("pw") || localStorage.getItem("pw") || ""; } catch { return ""; } },
+  set(pw, remember) { try { (remember ? localStorage : sessionStorage).setItem("pw", pw); } catch {} },
+  clear() { try { sessionStorage.removeItem("pw"); localStorage.removeItem("pw"); } catch {} },
+};
+const tr = (v, max = 200) => String(v ?? "").trim().slice(0, max);
+const fmt = (n) => n.toLocaleString("en-US");
+const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const daysOld = (asOf) => { const t = Date.parse(asOf + "T00:00"); return Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 864e5); };
+const isStale = (asOf) => (daysOld(tr(asOf)) ?? 0) > STALE_DAYS;
+function niceDate(asOf) {
+  const d = new Date(asOf + "T00:00");
+  if (Number.isNaN(+d)) return asOf;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(d.getFullYear() !== new Date().getFullYear() && { year: "numeric" }) });
+}
+const hasPrices = (h) => h.options.some((o) => MONEY_KEYS.some((k) => tr(o[k])));
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+
+async function api(path, options = {}) {
+  let res;
+  try {
+    res = await fetch(path, { ...options, headers: { "Content-Type": "application/json", Authorization: "Bearer " + password } });
+  } catch {
+    throw Object.assign(new Error("Can't connect right now. Please check your internet and try again."), { friendly: true });
+  }
+  if (res.status === 401) throw Object.assign(new Error("Wrong password."), { auth: true });
+  return res;
+}
+
+// Turn technical errors into plain words.
+function plain(message, unknown) {
+  if (/api key|LLM 40[013]/i.test(message)) return "Your bot isn't fully set up yet, so it can't reply. Please ask your developer to finish the setup.";
+  if (/LLM 429/.test(message)) return "Your bot is getting a lot of messages right now. Please wait a minute and try again.";
+  if (/LLM 5\d\d/.test(message)) return "Your bot is having a temporary problem. Please try again in a few minutes.";
+  if (/too big/i.test(message)) return "There's too much information. Please remove or shorten some items, then save again.";
+  if (/can't connect/i.test(message)) return message;
+  return unknown;
+}
+
+// toast; with an undo function it shows an Undo button for a few seconds
+function toast(text, undo) {
+  const box = $("toast");
+  box.className = "toast" + (undo ? " plain" : "");
+  box.replaceChildren(el("span", { textContent: text }));
+  if (undo) box.append(el("button", { type: "button", textContent: "Undo", onclick: () => { box.hidden = true; undo(); } }));
+  box.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => (box.hidden = true), undo ? 7000 : 2500);
+}
+
+// in-page confirmation / message; resolves true for the main button
+function askBox({ title, text, yes = "OK", no = "Cancel", danger = false, dev = "" }) {
+  const dlg = $("dlg");
+  $("dlgTitle").textContent = title;
+  $("dlgText").textContent = text || "";
+  $("dlgText").hidden = !text;
+  $("dlgDev").hidden = !dev;
+  $("dlgCode").textContent = dev;
+  $("dlgYes").textContent = yes;
+  $("dlgYes").className = "primary" + (danger ? " red" : "");
+  $("dlgNo").textContent = no || "";
+  $("dlgNo").hidden = !no;
+  return new Promise((resolve) => {
+    const done = (v) => { dlg.close(); resolve(v); };
+    $("dlgYes").onclick = () => done(true);
+    $("dlgNo").onclick = () => done(false);
+    dlg.oncancel = (e) => { e.preventDefault(); done(false); };
+    dlg.showModal();
+    $("dlgYes").focus();
+  });
+}
+
+function grow(t) {
+  if (CSS.supports("field-sizing", "content") || !t.offsetParent) return;
+  t.style.height = "auto";
+  t.style.height = Math.min(t.scrollHeight + 2, innerHeight * 0.7) + "px";
+}
+const growAll = () => document.querySelectorAll("textarea.grow").forEach(grow);
+
+/* ---------- size count: same as houseText in lib/bot.js (pricing "share") ---------- */
+const HT_FIELDS = [["area", "Area"], ["town", "Town/city"], ["status", "Status"], ["lotArea", "Lot area"], ["floorArea", "Floor area"], ["bedrooms", "Bedrooms"], ["bathrooms", "Bathrooms"], ["features", "Features"], ["notes", "Notes"], ["asOf", "Info as of"]];
+const HT_OPT = [["price", "Total price"], ["reservation", "Reservation fee"], ["processingFee", "Processing fee"], ["equity", "Equity"], ["loanValue", "Loan value"], ["monthly", "Monthly amortization"], ["term", "Term"]];
+function houseText(h) {
+  const project = tr(h.project);
+  const parts = HT_FIELDS.map(([k, l]) => [l, tr(h[k], 1000)]).filter(([, v]) => v).map(([l, v]) => `${l}: ${v}`);
+  let text = `- ${tr(h.name) || "Unnamed house"}${project ? ` (${project})` : ""}${parts.length ? ": " + parts.join("; ") : ""}`;
+  if (isStale(h.asOf)) text += ` (prices as of ${tr(h.asOf)}, older than ${STALE_DAYS} days)`;
+  for (const o of h.options || []) {
+    const val = (k) => tr(o[k]);
+    const line = HT_OPT.filter(([k]) => val(k)).map(([k, l]) => {
+      const months = { processingFee: "processingMonths", equity: "equityMonths" }[k];
+      return `${l} ${val(k)}${months && val(months) ? ` (payable over ${val(months)} months)` : ""}${k === "term" ? " years" : ""}`;
+    });
+    if (line.length) text += `\n  ${val("financing") || "Payment"}: ${line.join("; ")}`;
+  }
+  return text;
+}
+const sizeItems = () => [
+  ...state.sources.map((s) => [s.title || "Untitled", s.content.length]),
+  ...state.houses.map((h) => [h.name || "New house", houseText(h).length]),
+];
+const countChars = () => sizeItems().reduce((n, [, c]) => n + c, 0);
+const overBy = () => Math.max(0, countChars() - MAX_CHARS);
+const preview = (text) => text.replace(/\s+/g, " ").trim().slice(0, 120) || "Empty. Tap to add information.";
+
+/* ---------- sign in ---------- */
+$("pwToggle").addEventListener("click", () => {
+  const show = $("pw").type === "password";
+  $("pw").type = show ? "text" : "password";
+  $("pwToggle").textContent = show ? "Hide" : "Show";
+  $("pwToggle").setAttribute("aria-label", show ? "Hide password" : "Show password");
+});
+
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("loginErr").hidden = true;
+  try {
+    await signIn($("pw").value.trim());
+    store.set(password, $("remember").checked);
+  } catch (err) {
+    $("loginErr").textContent = err.auth ? "That password isn't right. Check for capital letters and try again." : plain(err.message, "Something went wrong. Please try again.");
+    $("loginErr").hidden = false;
+  }
+});
+
+async function signIn(pw) {
+  password = pw;
+  const res = await api("/api/settings");
+  if (!res.ok) throw new Error("Something went wrong. Please try again.");
+  load(await res.json());
+  $("login").hidden = true;
+  $("app").hidden = false;
+  route();
+  checkSetup();
+}
+
+document.querySelectorAll("[data-signout]").forEach((b) => b.addEventListener("click", async () => {
+  if (isDirty() && !(await askBox({ title: "Sign out without saving?", text: "You have changes that aren't saved yet. If you sign out now, they will be lost.", yes: "Sign out anyway", no: "Stay", danger: true }))) return;
+  leaving = true;
+  store.clear();
+  location.hash = "";
+  location.reload();
+}));
+
+/* ---------- settings form ---------- */
+// houses saved before payment options existed: one option from the old money fields
+function migrate(h) {
+  const house = { ...h };
+  const old = { financing: "", price: h.price, reservation: h.reservation, equity: h.downPayment, monthly: h.monthly };
+  const options = Array.isArray(h.options) ? h.options : Object.values(old).some((v) => tr(v)) ? [old] : [];
+  house.options = options.map((o) => Object.fromEntries(OPT_KEYS.map((k) => [k, String(o?.[k] ?? "")])));
+  for (const k of ["price", "reservation", "downPayment", "monthly"]) delete house[k];
+  house.project ??= "";
+  return house;
+}
+
+function load(settings) {
+  state = {
+    ...settings,
+    sources: (settings.sources || []).map((s) => ({ title: s.title, content: s.content })),
+    houses: (settings.houses || []).map(migrate),
+    leadQuestions: [...(settings.leadQuestions || [])],
+  };
+  savedJson = JSON.stringify(state);
+  document.querySelectorAll("[data-field]").forEach((f) => (f.value = state[f.dataset.field] ?? ""));
+  syncChips();
+  renderNotes();
+  renderHouses();
+  renderLeads();
+  refreshBotName();
+  updateSaveBar();
+  renderGuide();
+  growAll();
+}
+
+document.querySelectorAll("[data-field]").forEach((f) =>
+  f.addEventListener("input", () => {
+    state[f.dataset.field] = f.value;
+    syncChips();
+    refreshBotName();
+    updateSaveBar();
+    renderGuide();
+    if (f.matches("textarea.grow")) grow(f);
+  }),
+);
+
+// chips set the value directly; the text box below is only for your own words
+document.querySelectorAll("[data-chips]").forEach((group) =>
+  group.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    state[group.dataset.chips] = chip.dataset.value;
+    syncChips();
+    updateSaveBar();
+  }),
+);
+
+function syncChips() {
+  document.querySelectorAll("[data-chips]").forEach((group) => {
+    const value = state[group.dataset.chips];
+    let match = false;
+    group.querySelectorAll(".chip").forEach((c) => { const on = c.dataset.value === value; match ||= on; c.setAttribute("aria-pressed", String(on)); });
+    const input = $(group.dataset.chips);
+    if (input.type === "text" && document.activeElement !== input) input.value = match ? "" : value ?? "";
+  });
+  $("app").dataset.pricing = state.pricing; // shows "the bot won't share these" next to prices
+}
+
+function refreshBotName() {
+  const name = (state.botName || "").trim() || "Your bot";
+  $("chatName").textContent = name;
+  $("avatar").textContent = name[0].toUpperCase();
+}
+
+/* ---------- more information (notes) ---------- */
+function renderNotes() {
+  const query = $("search").value.trim().toLowerCase();
+  const list = $("notes");
+  $("search").hidden = state.sources.length < 4;
+  const shown = state.sources.filter((s) => !query || (s.title + " " + s.content).toLowerCase().includes(query));
+
+  if (!state.sources.length) {
+    list.innerHTML = '<div class="empty-notes">Nothing added yet.<br>Add your requirements, buying steps or common questions with the buttons above. "Use a ready-made text" is the quickest start.</div>';
+  } else if (!shown.length) {
+    list.innerHTML = '<div class="empty-notes">Nothing matches your search. Try a shorter word.</div>';
+  } else {
+    list.replaceChildren(...shown.map(noteCard));
+  }
+  updateMeter();
+}
+
+function noteCard(src) {
+  const card = document.createElement("details");
+  card.className = "note";
+  card.innerHTML = `
+    <summary><span class="t"></span><span class="s"></span><span class="p"></span></summary>
+    <div class="body">
+      <div class="draft" hidden><span>📝 <b>Draft.</b> Check this text with your team before saving. Fill in or remove anything in [brackets].</span><button type="button" class="link ok">It's checked</button></div>
+      <div class="field" style="margin:0"><label>Title <input type="text" class="title" style="margin-top:4px;font-weight:400"></label></div>
+      <div class="field" style="margin:0"><label>Information <textarea class="text" style="margin-top:4px;font-weight:400"></textarea></label></div>
+      <div class="row"><span class="small muted">Changes are kept when you press Save.</span><button type="button" class="danger">Delete</button></div>
+    </div>`;
+  const [t, s, p] = card.querySelectorAll("summary span");
+  const title = card.querySelector(".title");
+  const text = card.querySelector(".text");
+  const draft = card.querySelector(".draft");
+  const paint = () => {
+    t.textContent = (card.isDraft ? "📝 " : "") + (src.title || "Untitled");
+    s.textContent = fmt(src.content.length) + " characters";
+    p.textContent = preview(src.content);
+    draft.hidden = !card.isDraft;
+  };
+  card.isDraft = drafts.has(src);
+  title.value = src.title;
+  text.value = src.content;
+  paint();
+  title.addEventListener("input", () => { src.title = title.value; paint(); updateSaveBar(); });
+  text.addEventListener("input", () => { src.content = text.value; paint(); updateMeter(); updateSaveBar(); });
+  card.querySelector(".ok").addEventListener("click", () => { drafts.delete(src); card.isDraft = false; paint(); });
+  card.querySelector(".danger").addEventListener("click", () => {
+    const at = state.sources.indexOf(src);
+    state.sources.splice(at, 1);
+    renderNotes();
+    updateSaveBar();
+    toast(`Deleted "${src.title || "Untitled"}".`, () => { state.sources.splice(at, 0, src); renderNotes(); updateSaveBar(); });
+  });
+  card.src = src;
+  return card;
+}
+const drafts = new WeakSet(); // ready-made texts not checked yet (only in this browser, until reload)
+
+// one shared space for information and houses, shown on both pages
+function updateMeter() {
+  const used = countChars();
+  const over = used - MAX_CHARS;
+  const pct = Math.min(100, (used / MAX_CHARS) * 100);
+  let text = `${Math.max(1, Math.round(pct))}% of space used (information and houses together)`;
+  if (over > 0) {
+    const biggest = sizeItems().sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, c]) => `${n} (${fmt(c)})`).join(", ");
+    text = `About ${fmt(over)} characters too many, so it can't be saved. Biggest: ${biggest}. Remove or shorten some.`;
+  }
+  document.querySelectorAll(".meter").forEach((meter) => {
+    meter.querySelector("i").style.width = pct + "%";
+    meter.classList.toggle("full", over > 0);
+    meter.querySelector("span").textContent = text;
+    meter.hidden = !state.sources.length && !state.houses.length;
+  });
+  updateSaveBar();
+}
+
+/* ---------- houses for sale ---------- */
+const blankHouse = (extra = {}) => ({ name: "", project: "", area: "", town: "", status: "available", lotArea: "", floorArea: "", bedrooms: "", bathrooms: "", features: "", notes: "", asOf: today(), options: [], ...extra });
+
+function renderHouses() {
+  const query = $("houseSearch").value.trim().toLowerCase();
+  const list = $("houses");
+  $("houseSearch").hidden = state.houses.length < 4;
+  renderCount();
+  renderStale();
+  const shown = state.houses.filter((h) => !query || [h.name, h.project, h.area, h.town].join(" ").toLowerCase().includes(query));
+
+  if (!state.houses.length) {
+    list.innerHTML = '<div class="empty-notes">No houses yet.<br>Tap "+ Add a house" to add your first one. If you have a sample computation, you can paste it in.</div>';
+  } else if (!shown.length) {
+    list.innerHTML = '<div class="empty-notes">Nothing matches your search. Try the model or project name.</div>';
+  } else {
+    const groups = new Map();
+    for (const h of shown) {
+      const key = tr(h.project).toLowerCase();
+      if (!groups.has(key)) groups.set(key, { key, name: tr(h.project), houses: [] });
+      groups.get(key).houses.push(h);
+    }
+    const sorted = [...groups.values()].sort((a, b) => (a.key ? 0 : 1) - (b.key ? 0 : 1));
+    list.replaceChildren(...sorted.map(projectGroup));
+  }
+  refreshLists();
+  updateMeter();
+}
+
+function projectGroup(g) {
+  const box = document.createElement("details");
+  box.className = "proj";
+  box.open = !closedProjects.has(g.key);
+  const available = g.houses.filter((h) => h.status !== "sold out").length;
+  box.innerHTML = '<summary><span class="name"></span><span class="cnt"></span></summary><div class="proj-body"><div class="proj-tools"></div></div>';
+  box.querySelector(".name").textContent = g.name || "No project yet";
+  box.querySelector(".cnt").textContent = `${g.houses.length} ${g.houses.length === 1 ? "house" : "houses"}, ${available} available`;
+  box.addEventListener("toggle", () => (box.open ? closedProjects.delete(g.key) : closedProjects.add(g.key)));
+  const tools = box.querySelector(".proj-tools");
+  if (g.key) {
+    tools.append(el("button", { type: "button", textContent: "+ Add a house here", onclick: () => addHouse(blankHouse({ project: g.name, area: g.houses[0].area, town: g.houses[0].town })) }));
+    if (available) tools.append(el("button", { type: "button", textContent: "Mark all sold out", onclick: () => markSoldOut(g) }));
+  } else {
+    tools.append(el("span", { className: "small muted", textContent: "Type a project name in each house to group them." }));
+  }
+  box.querySelector(".proj-body").append(...g.houses.map(houseCard));
+  return box;
+}
+
+async function markSoldOut(g) {
+  const list = g.houses.filter((h) => h.status !== "sold out");
+  const ok = await askBox({
+    title: `Mark all of ${g.name} as sold out?`,
+    text: `${list.length} ${list.length === 1 ? "house" : "houses"} will show as sold out, and your bot will tell customers they're sold out.`,
+    yes: "Mark sold out",
+  });
+  if (!ok) return;
+  const before = list.map((h) => [h, h.status]);
+  list.forEach((h) => (h.status = "sold out"));
+  renderHouses();
+  updateSaveBar();
+  toast(`${g.name}: marked sold out.`, () => { before.forEach(([h, s]) => (h.status = s)); renderHouses(); updateSaveBar(); });
+}
+
+function refreshLists() {
+  const uniq = (k) => [...new Set(state.houses.map((h) => tr(h[k])).filter(Boolean))];
+  $("areaList").replaceChildren(...uniq("area").map((a) => el("option", { value: a })));
+  $("projectList").replaceChildren(...uniq("project").map((a) => el("option", { value: a })));
+}
+
+function renderStale() {
+  const list = state.houses.filter((h) => h.status !== "sold out" && hasPrices(h) && (!tr(h.asOf) || isStale(h.asOf)));
+  $("staleCard").hidden = !list.length;
+  $("staleList").replaceChildren(...list.map((h) => {
+    const days = daysOld(tr(h.asOf));
+    const row = el("div", { className: "stale-row" });
+    row.innerHTML = '<div><b></b><div class="small muted"></div></div><div class="btns"></div>';
+    row.querySelector("b").textContent = (h.name || "New house") + (tr(h.project) ? ` (${tr(h.project)})` : "");
+    row.querySelector(".small").textContent = tr(h.asOf) ? `Prices as of ${niceDate(h.asOf)} (${days} days ago)` : "No date for these prices";
+    row.querySelector(".btns").append(
+      el("button", { type: "button", textContent: "Still correct", onclick: () => { h.asOf = today(); renderHouses(); updateSaveBar(); toast("Marked as checked today. Remember to save."); } }),
+      el("button", { type: "button", className: "primary", textContent: "Edit", onclick: () => openHouse(h) }),
+    );
+    return row;
+  }));
+}
+
+function openHouse(house, focusSel) {
+  openHouses.add(house);
+  closedProjects.delete(tr(house.project).toLowerCase());
+  $("houseSearch").value = "";
+  renderHouses();
+  const card = [...$("houses").querySelectorAll(".house")].find((c) => c.house === house);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  card.querySelector(focusSel || "[data-k=name]").focus({ preventScroll: true });
+}
+
+function houseCard(house) {
+  const card = document.createElement("details");
+  card.className = "note house";
+  card.open = openHouses.has(house);
+  card.innerHTML = `
+    <summary><span class="t"></span><span class="s"><span class="badge st"></span><span class="badge old" hidden>Check this price</span></span><span class="p"></span><span class="d"></span></summary>
+    <div class="body">
+      <div class="grid2">
+        <label>Project <input type="text" data-k="project" list="projectList" placeholder="e.g. Mansfield Residences"></label>
+        <label>Model name <input type="text" data-k="name" placeholder="e.g. Scarlet"></label>
+        <label>Area <input type="text" data-k="area" list="areaList" placeholder="e.g. Pampanga"></label>
+        <label>Town or city <input type="text" data-k="town" placeholder="e.g. Angeles City"></label>
+        <div class="wide"><span class="group">Is it available?</span><div class="chips status" style="margin:6px 0 0"></div></div>
+        <div class="wide group">The house</div>
+        <label>Lot area <input type="text" data-k="lotArea" placeholder="e.g. 90 sqm"></label>
+        <label>Floor area <input type="text" data-k="floorArea" placeholder="e.g. 88 sqm"></label>
+        <label>Bedrooms <input type="text" data-k="bedrooms" placeholder="e.g. 3"></label>
+        <label>Bathrooms <input type="text" data-k="bathrooms" placeholder="e.g. 2"></label>
+        <label class="wide">Features <textarea data-k="features" placeholder="e.g. Single attached, carport, near SM Telabastagan"></textarea></label>
+        <label class="wide">Notes for your bot <textarea data-k="notes" placeholder="e.g. Construction takes about 24 months after reservation."></textarea></label>
+        <div class="wide group">Payment options</div>
+        <p class="wide price-note">Your bot won't mention these amounts while "An agent gives the prices" is chosen. It only says which financing is available.</p>
+        <div class="wide opts"></div>
+        <div class="wide add-opts"></div>
+        <div class="wide"><button type="button" class="pasteBtn">📋 Paste a sample computation</button></div>
+        <div class="wide paste" hidden>
+          <label>Paste the computation you send customers
+            <textarea class="pasteText" placeholder="e.g. House model- Kaya 2br  Price - 1,200,000  Reservation Fee- 5,000 …"></textarea></label>
+          <div class="row" style="justify-content:flex-start"><button type="button" class="primary readIt">Fill in the fields</button><button type="button" class="ghost pasteCancel">Cancel</button></div>
+          <div class="review" hidden></div>
+        </div>
+        <label>Prices as of <input type="date" data-k="asOf"></label>
+        <p class="small muted" style="margin:auto 0 4px">Changes by itself to today when you change a price.</p>
+      </div>
+      <div class="row">
+        <button type="button" class="copy">Copy this house</button>
+        <button type="button" class="danger del">Delete</button>
+      </div>
+    </div>`;
+  const q = (s) => card.querySelector(s);
+  const [t, , p, d] = card.querySelectorAll("summary > span");
+  const chips = q(".chips.status");
+  const asOfInput = q("[data-k=asOf]");
+  const paint = () => {
+    const status = STATUSES.find(([v]) => v === house.status) ?? STATUSES[0];
+    t.textContent = house.name || "New house";
+    q(".badge.st").textContent = status[1];
+    q(".badge.st").className = "badge st " + status[2];
+    const price = house.options.map((o) => tr(o.price)).find(Boolean);
+    p.textContent = [house.area, house.town, price].map((v) => tr(v)).filter(Boolean).join(" · ") || "Tap to add the details.";
+    const old = hasPrices(house) && house.status !== "sold out" && (!tr(house.asOf) || isStale(house.asOf));
+    d.textContent = tr(house.asOf) ? `Prices as of ${niceDate(house.asOf)}` : hasPrices(house) ? "No date for these prices" : "";
+    d.className = "d" + (old ? " old" : "");
+    q(".badge.old").hidden = !old;
+    chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.value === status[0])));
+  };
+  card.addEventListener("toggle", () => (card.open ? openHouses.add(house) : openHouses.delete(house)));
+  for (const [value, label] of STATUSES) {
+    const chip = el("button", { type: "button", className: "chip", textContent: label });
+    chip.dataset.value = value;
+    chip.addEventListener("click", () => { house.status = value; paint(); renderCount(); renderStale(); updateSaveBar(); });
+    chips.append(chip);
+  }
+  card.querySelectorAll("[data-k]").forEach((input) => {
+    input.value = house[input.dataset.k] ?? "";
+    input.addEventListener("input", () => {
+      house[input.dataset.k] = input.value;
+      paint();
+      if (input.dataset.k === "area") refreshLists();
+      if (input.dataset.k === "asOf") renderStale();
+      updateMeter();
+    });
+  });
+  // moving to another project group happens when the box is left, not while typing
+  q("[data-k=project]").addEventListener("change", () => openHouse(house, "[data-k=project]"));
+
+  // a price changed: the prices are as of today
+  const touchPrice = () => {
+    house.asOf = today();
+    asOfInput.value = house.asOf;
+    paint();
+    renderStale();
+    updateMeter();
+  };
+
+  const renderOptions = () => {
+    const used = house.options.map((o) => o.financing);
+    q(".opts").replaceChildren(...house.options.map((o) => optionCard(o, used)));
+    const add = q(".add-opts");
+    add.replaceChildren();
+    if (!house.options.length) add.append(el("p", { className: "small muted", style: "margin:0;width:100%", textContent: "No payment options yet. Add one for each way to pay, or paste a sample computation." }));
+    if (house.options.length < 3) {
+      for (const f of FINANCING.filter((f) => !used.includes(f))) {
+        add.append(el("button", { type: "button", textContent: "+ " + f, onclick: () => { house.options.push(blankOption(f)); renderOptions(); updateMeter(); q(".opts").lastElementChild?.querySelector("input")?.focus(); } }));
+      }
+    }
+  };
+  const blankOption = (financing = "") => Object.fromEntries(OPT_KEYS.map((k) => [k, k === "financing" ? financing : ""]));
+
+  const optionCard = (o, used) => {
+    const box = el("div", { className: "opt" });
+    box.innerHTML = '<div class="opt-head"><h4></h4><button type="button" class="danger rm">Remove</button></div><div class="pick" hidden><span class="small">What kind of payment is this?</span><div class="chips" style="margin:6px 0 10px"></div></div><div class="grid2 f"></div>';
+    box.querySelector("h4").textContent = o.financing || "Payment option (type not set)";
+    if (!o.financing) {
+      box.querySelector(".pick").hidden = false;
+      for (const f of FINANCING.filter((f) => !used.includes(f))) {
+        box.querySelector(".pick .chips").append(el("button", { type: "button", className: "chip", textContent: f, onclick: () => { o.financing = f; renderOptions(); updateMeter(); } }));
+      }
+    }
+    const grid = box.querySelector(".f");
+    const field = ([k, label, ph]) => {
+      const input = el("input", { type: "text", placeholder: ph, value: o[k] ?? "" });
+      if (/Months|term/.test(k)) input.inputMode = "numeric";
+      input.addEventListener("input", () => { o[k] = input.value; touchPrice(); });
+      return el("label", {}, label, input);
+    };
+    const F = Object.fromEntries(OPT_FIELDS.map((f) => [f[0], f]));
+    grid.append(
+      field(F.price), field(F.reservation),
+      el("div", { className: "pair wide" }, field(F.processingFee), field(F.processingMonths)),
+      el("div", { className: "pair wide" }, field(F.equity), field(F.equityMonths)),
+      field(F.loanValue), field(F.monthly), field(F.term),
+    );
+    box.querySelector(".rm").addEventListener("click", () => {
+      const at = house.options.indexOf(o);
+      house.options.splice(at, 1);
+      renderOptions();
+      touchPrice();
+      toast(`Removed ${o.financing || "payment option"}.`, () => { house.options.splice(at, 0, o); renderOptions(); updateMeter(); updateSaveBar(); });
+    });
+    return box;
+  };
+
+  // paste a sample computation, check it, then keep it
+  q(".pasteBtn").addEventListener("click", () => { q(".paste").hidden = false; q(".pasteBtn").hidden = true; q(".pasteText").focus(); });
+  const closePaste = () => { q(".paste").hidden = true; q(".pasteBtn").hidden = false; q(".review").hidden = true; q(".pasteText").value = ""; };
+  q(".pasteCancel").addEventListener("click", closePaste);
+  q(".readIt").addEventListener("click", () => showReview(parseComputation(q(".pasteText").value)));
+
+  const showReview = (found) => {
+    const review = q(".review");
+    review.hidden = false;
+    review.replaceChildren();
+    const keys = Object.keys(found.fields);
+    if (!keys.length && !found.name) {
+      review.append(el("p", { className: "msg-err", style: "margin:0", textContent: 'We couldn\'t find any amounts in that text. Check that it has labels like "Price -" or "Reservation fee -", or type the amounts in yourself.' }));
+      return;
+    }
+    let financing = found.financing;
+    review.append(el("b", { textContent: "Check these before keeping them" }),
+      el("p", { className: "small muted", style: "margin:0", textContent: "Change anything that's wrong. Clear a box to leave it out." }));
+    const pick = el("div", { className: "chips", style: "margin:0" });
+    const paintPick = () => pick.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.value === financing)));
+    for (const [v, label] of [...FINANCING.map((f) => [f, f]), ["", "Not stated"]]) {
+      const c = el("button", { type: "button", className: "chip", textContent: label, onclick: () => { financing = v; paintPick(); } });
+      c.dataset.value = v;
+      pick.append(c);
+    }
+    paintPick();
+    review.append(el("span", { className: "small", style: "font-weight:600", textContent: "Payment type" }), pick);
+    const rows = el("div", { className: "grid2" });
+    const inputs = {};
+    const row = (k, label, value) => { inputs[k] = el("input", { type: "text", value }); rows.append(el("label", {}, label, inputs[k])); };
+    if (found.project) row("project", "Project", found.project);
+    if (found.name) row("name", "Model name", found.name);
+    const named = { processingMonths: "Processing fee: months to pay", equityMonths: "Equity: months to pay" };
+    for (const [k, label] of OPT_FIELDS) if (k in found.fields) row(k, named[k] || label, found.fields[k]);
+    review.append(rows);
+    const missing = OPT_FIELDS.filter(([k]) => !(k in found.fields) && !/Months/.test(k)).map(([, l]) => l);
+    if (missing.length) review.append(el("p", { className: "small muted", style: "margin:0", textContent: "Not in the text, left empty: " + missing.join(", ") + "." }));
+    const err = el("p", { className: "msg-err", style: "margin:0", hidden: true });
+    review.append(err, el("div", { className: "row", style: "justify-content:flex-start" },
+      el("button", { type: "button", className: "primary", textContent: "Keep these", onclick: () => {
+        let o = house.options.find((x) => x.financing === financing);
+        if (!o) {
+          if (house.options.length >= 3) { err.textContent = "This house already has 3 payment options. Remove one first, or pick a type it already has."; err.hidden = false; return; }
+          o = blankOption(financing);
+          house.options.push(o);
+        }
+        for (const [k] of OPT_FIELDS) if (inputs[k] && tr(inputs[k].value)) o[k] = tr(inputs[k].value);
+        const moved = inputs.project && tr(inputs.project.value) && tr(inputs.project.value) !== tr(house.project);
+        for (const k of ["project", "name"]) if (inputs[k] && tr(inputs[k].value)) house[k] = tr(inputs[k].value);
+        card.querySelectorAll("[data-k]").forEach((i) => (i.value = house[i.dataset.k] ?? ""));
+        closePaste();
+        renderOptions();
+        touchPrice();
+        toast("Filled in. Check it, then press Save.");
+        if (moved) openHouse(house, ".pasteBtn");
+      } }),
+      el("button", { type: "button", className: "ghost", textContent: "Cancel", onclick: closePaste }),
+    ));
+  };
+
+  q(".copy").addEventListener("click", () => addHouse({ ...house, name: (house.name || "House") + " (copy)", options: house.options.map((o) => ({ ...o })) }, house));
+  q(".del").addEventListener("click", () => {
+    const at = state.houses.indexOf(house);
+    state.houses.splice(at, 1);
+    renderHouses();
+    updateSaveBar();
+    renderGuide();
+    toast(`Deleted "${house.name || "New house"}".`, () => { state.houses.splice(at, 0, house); renderHouses(); updateSaveBar(); renderGuide(); });
+  });
+  renderOptions();
+  paint();
+  card.house = house;
+  return card;
+}
+
+// Reads the team's usual "Sample computation" text. Only takes what is written; never guesses a missing amount.
+function parseComputation(raw) {
+  const text = raw.replace(/[*_]/g, " ").replace(/\s+/g, " ").trim();
+  const LABELS = [
+    ["name", /\bhouse\s+model\b/gi],
+    ["price", /\b(?:total\s+contract\s+price|tcp|price)\b(?!\s*package)/gi],
+    ["reservation", /\breservation(?:\s+fee)?\b/gi],
+    ["processingFee", /\bprocessing(?:\s+fee)?\b/gi],
+    ["equity", /\b(?:equity|down\s*payment|dp)\b/gi],
+    ["loanValue", /\bloan\s+(?:value|amount)\b/gi],
+    ["monthly", /\bmonthly(?:\s+amorti[sz]ation|\s+amort\b\.?|\s+payment)?/gi],
+  ];
+  let marks = [];
+  for (const [key, re] of LABELS) for (const m of text.matchAll(re)) marks.push({ key, start: m.index, end: m.index + m[0].length });
+  marks.sort((a, b) => a.start - b.start);
+  marks = marks.filter((m, i) => !marks.slice(0, i).some((x) => m.start < x.end));
+  const fields = {};
+  let name = "";
+  const amount = (seg) => {
+    const m = seg.match(/\d[\d,.]*(?:\s*(?:million\b|m\b|k\b))?/i);
+    return m ? m[0].replace(/[.,]+$/, "").replace(/\s*(million|m)$/i, "M").replace(/\s*k$/i, "k") : "";
+  };
+  const monthsToPay = (seg) => {
+    let m = seg.match(/(\d+)\s*(?:yrs?|years?)\s*(?:to\s*pay|payable)/i) || seg.match(/payable\s+(?:in|over|for)\s+(\d+)\s*(?:yrs?|years?)/i);
+    if (m) return String(+m[1] * 12);
+    m = seg.match(/(\d+)\s*(?:mos?|months?)\s*(?:to\s*pay|payable)/i) || seg.match(/payable\s+(?:in|over|for)\s+(\d+)\s*(?:mos?|months?)/i);
+    return m ? m[1] : "";
+  };
+  marks.forEach((m, i) => {
+    if (m.key in fields || (m.key === "name" && name)) return;
+    const seg = text.slice(m.end, marks[i + 1]?.start ?? text.length).replace(/^[\s\-–:|=]+/, "");
+    if (m.key === "name") { name = seg.split(/\s*[|]\s*/)[0].trim().slice(0, 60); return; }
+    const value = amount(seg);
+    if (!value) return;
+    fields[m.key] = value;
+    const months = monthsToPay(seg.slice(seg.indexOf(value) + value.length));
+    if (months && m.key === "processingFee") fields.processingMonths = months;
+    if (months && m.key === "equity") fields.equityMonths = months;
+  });
+  const term = text.match(/(\d+)\s*-?\s*(?:yrs?|years?)\.?\s*term\b/i) || text.match(/\bterm\s*(?:of)?\s*[-:]?\s*(\d+)\s*(?:yrs?|years?)/i);
+  if (term) fields.term = term[1];
+  // "Scarlet Model | Price 5M" style
+  let lead = text.slice(0, marks[0]?.start ?? text.length);
+  if (!name) {
+    const m = text.match(/([A-Za-z][\w'-]*(?:\s+[A-Za-z0-9][\w'-]*){0,2})\s+model\b/i);
+    if (m && !/^(house|price package)$/i.test(m[1])) { name = m[1]; lead = text.slice(0, Math.min(lead.length, m.index)); }
+  }
+  const types = new Set();
+  if (/pag-?\s*ibig/i.test(text)) types.add("Pag-IBIG");
+  if (/\bbank\b/i.test(text)) types.add("Bank");
+  if (/\bin-?\s*house\b/i.test(text)) types.add("In-house");
+  const project = lead
+    .replace(/sample\s+computation|price\s+package/gi, " ")
+    .replace(/pag-?\s*ibig(\s+housing)?(\s+loan)?|bank\s+(loan|financing)|in-?\s*house(\s+financing)?/gi, " ")
+    .replace(/[|:–-]/g, " ").replace(/\s+/g, " ").trim();
+  return { name, project: /[a-z]/i.test(project) && project.length <= 80 ? project : "", financing: types.size === 1 ? [...types][0] : "", fields };
+}
+
+function renderCount() {
+  const available = state.houses.filter((h) => h.status !== "sold out").length;
+  $("houseCount").textContent = state.houses.length ? `${state.houses.length} added, ${available} available` : "";
+}
+
+// new house goes first, a copy goes right after the house it was copied from
+function addHouse(house, after) {
+  const at = after ? state.houses.indexOf(after) + 1 : 0;
+  state.houses.splice(at, 0, house);
+  updateSaveBar();
+  renderGuide();
+  openHouse(house, after ? "[data-k=name]" : "[data-k=project]");
+}
+
+$("addHouse").addEventListener("click", () => addHouse(blankHouse()));
+$("houseSearch").addEventListener("input", renderHouses);
+
+/* ---------- buyer details ---------- */
+function renderLeads() {
+  $("leadQuestions").replaceChildren(...Object.entries(LEAD_LABELS).map(([key, label]) => {
+    const box = el("input", { type: "checkbox", checked: state.leadQuestions.includes(key) });
+    box.addEventListener("change", () => {
+      state.leadQuestions = Object.keys(LEAD_LABELS).filter((k) => (k === key ? box.checked : state.leadQuestions.includes(k)));
+      updateSaveBar();
+    });
+    return el("label", {}, box, label);
+  }));
+}
+
+function addNote(title, content, open = false) {
+  const src = { title, content };
+  state.sources.unshift(src);
+  $("search").value = "";
+  renderNotes();
+  updateSaveBar();
+  const card = [...$("notes").children].find((c) => c.src === src);
+  if (card) {
+    card.open = open;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (open) card.querySelector(".text").focus({ preventScroll: true });
+  }
+  return src;
+}
+
+function notesError(text) { $("notesErr").textContent = text || ""; $("notesErr").hidden = !text; }
+const closePickers = () => ["starterPicker", "titleRow", "urlRow"].forEach((id) => ($(id).hidden = true));
+
+$("search").addEventListener("input", renderNotes);
+$("addText").addEventListener("click", () => { notesError(); closePickers(); $("titleRow").hidden = false; $("titleInput").value = ""; $("titleInput").focus(); });
+$("titleGo").addEventListener("click", () => { closePickers(); addNote($("titleInput").value.trim() || "New information", "", true); });
+$("titleInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("titleGo").click(); } });
+$("titleCancel").addEventListener("click", closePickers);
+$("addStarter").addEventListener("click", () => { notesError(); closePickers(); $("starterPicker").hidden = false; });
+$("starterCancel").addEventListener("click", closePickers);
+$("starterChips").append(...STARTERS.map(([title, text]) => el("button", { type: "button", className: "chip", textContent: title, onclick: () => {
+  closePickers();
+  const src = { title, content: text };
+  drafts.add(src);
+  state.sources.unshift(src);
+  renderNotes();
+  updateSaveBar();
+  const card = [...$("notes").children].find((c) => c.src === src);
+  if (card) { card.open = true; card.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  toast("Added as a draft. Check it with your team, then save.");
+} })));
+$("addUrl").addEventListener("click", () => { notesError(); closePickers(); $("urlRow").hidden = false; $("urlInput").focus(); });
+$("urlCancel").addEventListener("click", () => { $("urlRow").hidden = true; $("urlInput").value = ""; });
+$("urlInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("urlGo").click(); } });
+$("urlGo").addEventListener("click", async () => {
+  let url = $("urlInput").value.trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  notesError();
+  $("urlGo").disabled = true;
+  $("urlGo").textContent = "Copying…";
+  try {
+    const res = await api("/api/import", { method: "POST", body: JSON.stringify({ url }) });
+    if (!res.ok) throw new Error("We couldn't copy that page. Make sure the link is correct and the page is public. Facebook pages can't be copied; type or paste that information instead.");
+    const { title, content } = await res.json();
+    addNote(title, content);
+    $("urlInput").value = "";
+    $("urlRow").hidden = true;
+    toast("Page added. Remember to save.");
+  } catch (err) {
+    notesError(err.message);
+  } finally {
+    $("urlGo").disabled = false;
+    $("urlGo").textContent = "Add";
+  }
+});
+
+$("addFile").addEventListener("click", () => { notesError(); closePickers(); $("fileInput").click(); });
+$("fileInput").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+
+async function addFiles(files) {
+  for (const file of files) {
+    if (!/\.(txt|md|csv)$/i.test(file.name) && !file.type.startsWith("text/")) {
+      notesError(`"${file.name}" can't be read. For Word or PDF files, open the file, copy the text, and use "Type or paste".`);
+      continue;
+    }
+    if (file.size > 2_000_000) { notesError(`"${file.name}" is too large.`); continue; }
+    addNote(file.name.replace(/\.[^.]+$/, ""), await file.text());
+  }
+}
+
+// drag and drop a file anywhere on the page
+let dragDepth = 0;
+addEventListener("dragenter", (e) => { if (!$("app").hidden && e.dataTransfer.types.includes("Files")) { dragDepth++; $("drop").hidden = false; } });
+addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("drop").hidden = true; } });
+addEventListener("dragover", (e) => e.preventDefault());
+addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  $("drop").hidden = true;
+  if ($("app").hidden || !e.dataTransfer.files.length) return;
+  location.hash = "#knows";
+  notesError();
+  addFiles(e.dataTransfer.files);
+});
+
+/* ---------- saving ---------- */
+const isDirty = () => state && JSON.stringify(state) !== savedJson;
+let saving = false;
+function updateSaveBar() {
+  if (!state) return;
+  const over = overBy();
+  $("savebar").hidden = !isDirty();
+  $("save").disabled = saving || over > 0;
+  $("saveMsg").innerHTML = over > 0
+    ? '<span class="long">Too much information to save. Remove about ' + fmt(over) + ' characters.</span><span class="short">Too much to save</span>'
+    : '<span class="long">You have unsaved changes</span><span class="short">Not saved</span>';
+  $("save").title = over > 0 ? `Remove about ${fmt(over)} characters first` : "";
+}
+
+async function save() {
+  if (!isDirty() || saving) return;
+  if (overBy() > 0) {
+    await askBox({ title: "Too much information to save", text: `Please remove or shorten about ${fmt(overBy())} characters first. The space bar on "What your bot knows" shows the biggest items.`, yes: "OK", no: null });
+    return;
+  }
+  saving = true;
+  $("save").textContent = "Saving…";
+  updateSaveBar();
+  try {
+    const res = await api("/api/settings", { method: "PUT", body: JSON.stringify(state) });
+    if (!res.ok) { const body = await res.text(); throw Object.assign(new Error(`${res.status} ${body}`), { body }); }
+    load(await res.json());
+    toast("✓ Saved. Your bot is using the new information now.");
+    checkSetup();
+  } catch (err) {
+    saving = false;
+    const text = err.auth ? "You've been signed out. Please sign in again (your changes on this page are still here until you leave)." : plain(err.message, "Couldn't save. Please try again. If it keeps happening, tell your developer.");
+    if (await askBox({ title: "Couldn't save", text, yes: "Try again", no: "Close", dev: err.message })) return save();
+  } finally {
+    saving = false;
+    $("save").textContent = "Save";
+    updateSaveBar();
+  }
+}
+
+$("save").addEventListener("click", save);
+$("discard").addEventListener("click", async () => {
+  if (await askBox({ title: "Undo all changes?", text: "Everything goes back to how it was when you last saved.", yes: "Undo changes", no: "Keep editing", danger: true })) load(JSON.parse(savedJson));
+});
+addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && state) { e.preventDefault(); save(); } });
+addEventListener("beforeunload", (e) => { if (isDirty() && !leaving) e.preventDefault(); });
+
+/* ---------- setup banner ---------- */
+async function checkSetup() {
+  let status = { aiKey: true, facebook: true, storage: true };
+  try { const res = await api("/api/status"); if (res.ok) status = await res.json(); } catch {}
+  lastStatus = status;
+  const hasInfo = Boolean((state.business || "").trim() || state.sources.length || state.houses.length);
+  const items = [
+    [status.aiKey && status.storage, "Bot is switched on", "Bot isn't switched on yet (ask your developer)"],
+    [status.facebook, "Connected to your Facebook Page", "Not connected to Facebook yet (ask your developer)"],
+    [hasInfo, "Bot has information to answer with", "Add information about your business below"],
+  ];
+  const done = items.every(([ok]) => ok);
+  const box = $("setup");
+  box.className = "setup" + (done && status.facebookPublic ? " done" : "");
+  box.replaceChildren();
+  if (done && status.facebookPublic) box.append(el("strong", { textContent: "✅ Your bot is ready and replying on Facebook." }));
+  else if (done) {
+    box.append(el("strong", { textContent: "✅ Your bot is set up." }),
+      el("span", { textContent: "Facebook replies: only test accounts get answers until Facebook approves the app. Real customers don't get bot replies yet." }));
+    const dev = el("details", { className: "dev" }, el("summary", { textContent: "For your developer" }),
+      el("code", { textContent: "The Meta app is in Development mode. App Review for pages_messaging is needed. Set FACEBOOK_PUBLIC=1 after approval and redeploy." }));
+    box.append(dev);
+  } else {
+    box.append(el("strong", { textContent: "Almost there. A few things still need to be done:" }));
+    for (const [ok, yes, no] of items) box.append(el("span", { textContent: (ok ? "✅ " : "⬜ ") + (ok ? yes : no) }));
+  }
+  box.hidden = false;
+}
+
+/* ---------- first-time guide ---------- */
+function renderGuide() {
+  if (!state) return;
+  const hidden = local.get("studio.guideHidden") === "1";
+  $("guide").hidden = hidden || currentView() !== "knows";
+  if (hidden) return;
+  const steps = [
+    ["Business basics", "Say what you sell, where, and how people pay.", Boolean(tr(state.business)), () => { location.hash = "#knows"; $("business").focus(); }],
+    ["Add your first house", "Model, project, prices. You can paste a sample computation.", state.houses.length > 0, () => { location.hash = "#houses"; if (!state.houses.length) setTimeout(() => $("addHouse").click(), 0); }],
+    ["Try a question", "Ask your bot what a customer would ask.", local.get("studio.tried") === "1" || tried, () => openChat(true)],
+  ];
+  $("steps").replaceChildren(...steps.map(([title, help, done, go], i) => {
+    const b = el("button", { type: "button", onclick: go });
+    b.innerHTML = `<span class="num">${done ? "✓" : i + 1}</span><span><b></b><small></small></span>`;
+    b.querySelector("b").textContent = title;
+    b.querySelector("small").textContent = done ? "Done" : help;
+    return el("li", { className: done ? "done" : "" }, b);
+  }));
+}
+let tried = false;
+$("guideHide").addEventListener("click", () => { local.set("studio.guideHidden", "1"); renderGuide(); toast("Guide hidden."); });
+
+/* ---------- sections ---------- */
+const currentView = () => (["knows", "houses", "talks", "more"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "knows");
+function route() {
+  const view = currentView();
+  document.querySelectorAll("[data-view]").forEach((s) => (s.hidden = s.dataset.view !== view));
+  document.querySelectorAll("[data-nav]").forEach((a) => (a.dataset.nav === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+  $("setup").style.display = view === "knows" ? "" : "none";
+  $("guide").hidden = view !== "knows" || local.get("studio.guideHidden") === "1";
+  scrollTo(0, 0);
+  growAll();
+}
+addEventListener("hashchange", route);
+$("webhookUrl").textContent = location.origin + "/api/webhook";
+
+/* ---------- try your bot ---------- */
+function bubble(kind, text) {
+  $("log").querySelector(".starter")?.remove();
+  const div = el("div", { className: "bubble " + kind });
+  if (text === null) div.innerHTML = '<span class="typing" aria-label="Bot is typing"><i></i><i></i><i></i></span>';
+  else div.textContent = text;
+  $("log").append(div);
+  $("log").scrollTop = $("log").scrollHeight;
+  return div;
+}
+
+function showStarters() {
+  $("log").replaceChildren(el("div", { className: "starter muted small" }, "Ask a question the way a customer would, or tap 💡 Try a real question below."));
+  toggleMenu(true);
+}
+
+function toggleMenu(open = $("qmenu").hidden) {
+  $("qmenu").hidden = !open;
+  $("qBtn").setAttribute("aria-expanded", String(open));
+  $("qBtn").textContent = open ? "✕ Hide questions" : "💡 Try a real question";
+}
+$("qmenu").append(...QUESTIONS.flatMap(([topic, qs]) => [
+  el("h4", { textContent: topic }),
+  el("div", { className: "chips" }, ...qs.map((q) => el("button", { type: "button", className: "chip", textContent: q, onclick: () => { toggleMenu(false); ask(q); } }))),
+]));
+$("qBtn").addEventListener("click", () => toggleMenu());
+
+// "Not right?": add a rule for the user to finish
+function fixReply(question) {
+  const line = `When a customer asks "${question}", say: `;
+  state.rules = (state.rules || "").replace(/\s+$/, "") + ((state.rules || "").trim() ? "\n" : "") + line;
+  $("rules").value = state.rules;
+  updateSaveBar();
+  $("chat").classList.remove("open");
+  location.hash = "#more";
+  setTimeout(() => {
+    grow($("rules"));
+    $("rules").scrollIntoView({ block: "center" });
+    $("rules").focus({ preventScroll: true });
+    $("rules").setSelectionRange(state.rules.length, state.rules.length);
+  }, 50);
+  toast("Added to your rules. Finish the sentence, then save.");
+}
+
+async function ask(text) {
+  text = text.trim();
+  if (!text || $("send").disabled) return;
+  bubble("user", text);
+  chatHistory.push({ role: "user", content: text });
+  $("send").disabled = true;
+  const typing = bubble("bot", null);
+  tried = true;
+  local.set("studio.tried", "1");
+  renderGuide();
+  try {
+    const res = await api("/api/chat", { method: "POST", body: JSON.stringify({ settings: state, messages: chatHistory }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `${res.status} error`);
+    typing.textContent = data.reply;
+    chatHistory.push({ role: "assistant", content: data.reply });
+    $("log").append(el("button", { type: "button", className: "link fix", textContent: "Not right? Tell the bot what to say", onclick: () => fixReply(text) }));
+    $("log").scrollTop = $("log").scrollHeight;
+  } catch (err) {
+    typing.remove();
+    chatHistory.pop();
+    const box = bubble("problem", "⚠️ " + plain(err.message, "The test didn't work. Please try again. If it keeps happening, tell your developer."));
+    box.append(el("details", { className: "dev" }, el("summary", { textContent: "For your developer" }), el("code", { textContent: err.message })));
+  } finally {
+    $("send").disabled = false;
+    if (matchMedia("(min-width: 761px)").matches) $("chatInput").focus();
+  }
+}
+
+function openChat(menu) {
+  $("chat").classList.add("open");
+  if (menu) toggleMenu(true);
+  $("chatInput").focus();
+}
+$("chatForm").addEventListener("submit", (e) => { e.preventDefault(); const t = $("chatInput").value; $("chatInput").value = ""; ask(t); });
+$("reset").addEventListener("click", () => { chatHistory = []; showStarters(); });
+$("openChat").addEventListener("click", () => openChat());
+$("closeChat").addEventListener("click", () => $("chat").classList.remove("open"));
+showStarters();
+
+/* ---------- start ---------- */
+const remembered = store.get();
+if (remembered) signIn(remembered).catch(() => store.clear());
+</script>
+</body>
+</html>
